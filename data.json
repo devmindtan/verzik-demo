@@ -1,9 +1,13 @@
 {
   "currentUser": {
     "publicName": "Nguyễn Văn A",
-    "operatorId": "me",
-    "walletAddress": "0x71C4...9A2f"
+    "operatorId": "me"
   },
+  "demoWallets": [
+    { "id": "me", "label": "Ví Của Bạn (Nguyễn Văn A)", "address": "0x71C4...9A2f" },
+    { "id": "tenant-admin-abc", "label": "Admin — Công ty CP Giáo dục ABC", "address": "0xA11...GD01" },
+    { "id": "protocol-admin", "label": "Protocol Admin", "address": "0xP00A...DM01" }
+  ],
   "tenantApplications": [
     {
       "id": "app-seed-1",

@@ -55,9 +55,9 @@
             <button onclick="closeConnectModal()" class="absolute top-4 right-4 text-slate-500 hover:text-white" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button>
             <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-2xl text-white mx-auto mb-6"><i class="fa-solid fa-link"></i></div>
             <h1 class="text-2xl font-bold text-white mb-2">TrustChain</h1>
-            <p class="text-slate-400 mb-8">Kết nối ví để thực hiện thao tác này. Bạn vẫn có thể tiếp tục xem dữ liệu công khai (Xác minh, Sổ Cái) mà không cần kết nối.</p>
-            <button onclick="connectWallet()" id="btn-connect-wallet" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"><i class="fa-solid fa-wallet"></i> Kết Nối Ví</button>
-            <p class="text-xs text-slate-500 mt-4">Demo: ví sẽ được gán địa chỉ mẫu <span class="font-mono" id="gate-wallet-preview"></span></p>
+            <p class="text-slate-400 mb-6">Chọn ví demo để kết nối. Mỗi ví có quyền hạn khác nhau trên hệ thống — đúng như trong thực tế, chỉ ví đang giữ vai trò tương ứng mới thấy được các trang quản trị của vai trò đó.</p>
+            <div class="space-y-2 text-left" id="connect-wallet-list"></div>
+            <p class="text-xs text-slate-500 mt-4">Bạn vẫn có thể tiếp tục xem dữ liệu công khai (Xác minh, Sổ Cái) mà không cần kết nối.</p>
         </div>
     </div>
 
@@ -138,17 +138,9 @@
                 </div>
                 <div class="border-t border-slate-800 mb-4"></div>
 
-                <!-- MENU: CÔNG CHÚNG / KHÁCH HÀNG -->
-                <div id="menu-group-public" class="role-menu-group">
-                    <div class="mb-4 bg-slate-800 rounded-lg p-3 flex items-center gap-3 border border-slate-700">
-                        <div class="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-slate-300"><i class="fa-solid fa-user"></i></div>
-                        <div>
-                            <p class="text-xs text-slate-400">Đăng nhập với ví:</p>
-                            <p class="text-sm font-bold">Nguyễn Văn A</p>
-                        </div>
-                    </div>
-
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2">Cá nhân</p>
+                <!-- LUÔN HIỂN THỊ TRỪ ADMIN: dù đóng vai gì, mọi ví vẫn chỉ là 1 cá nhân bình thường -->
+                <div id="personal-nav-block" class="mb-6">
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2">Cá Nhân (Mọi vai trò trừ Protocol Admin)</p>
                     <nav class="space-y-1">
                         <button onclick="switchView('account')" id="nav-account" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
                             <i class="fa-solid fa-address-card w-5 text-center text-sky-400"></i><span class="text-sm font-medium">Hồ Sơ Cá Nhân</span>
@@ -158,6 +150,10 @@
                         </button>
                     </nav>
                 </div>
+                <div class="border-t border-slate-800 mb-4"></div>
+
+                <!-- MENU: CÔNG CHÚNG / KHÁCH HÀNG -->
+                <div id="menu-group-public" class="role-menu-group"></div>
 
                 <!-- MENU: NHÂN VIÊN (OPERATOR) -->
                 <div id="menu-group-operator" class="role-menu-group hidden">
@@ -261,6 +257,15 @@
                     <h3 class="font-bold text-lg text-slate-800 mb-2">Cần Kết Nối Ví</h3>
                     <p class="text-sm text-slate-500 mb-6">Trang này cần biết ví của bạn để hiển thị đúng dữ liệu hoặc thực hiện giao dịch. Xem dữ liệu công khai (Xác minh, Sổ Cái) thì không cần kết nối.</p>
                     <button onclick="openConnectModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-bold"><i class="fa-solid fa-wallet"></i> Kết Nối Ví</button>
+                </div>
+            </div>
+
+            <!-- Khoá Gia Nhập / Đăng Ký Doanh Nghiệp khi ví đã có thân phận rồi (đã là nhân viên hoặc đã quản trị doanh nghiệp) -->
+            <div id="identity-locked-overlay" class="hidden absolute inset-0 bg-slate-50/95 backdrop-blur-sm z-30 flex items-center justify-center p-8">
+                <div class="max-w-sm text-center bg-white rounded-2xl border border-slate-200 shadow-xl p-8">
+                    <div class="w-14 h-14 bg-slate-100 text-slate-500 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-circle-check"></i></div>
+                    <h3 class="font-bold text-lg text-slate-800 mb-2">Không Cần Đăng Ký Thêm</h3>
+                    <p class="text-sm text-slate-500 mb-2" id="identity-locked-reason"></p>
                 </div>
             </div>
 
