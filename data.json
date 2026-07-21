@@ -1,8 +1,21 @@
 {
   "currentUser": {
     "publicName": "Nguyễn Văn A",
-    "operatorId": "me"
+    "operatorId": "me",
+    "walletAddress": "0x71C4...9A2f"
   },
+  "tenantApplications": [
+    {
+      "id": "app-seed-1",
+      "name": "Trung Tâm Ngoại Ngữ DEF",
+      "admin": "0xD11...GD01",
+      "opManager": "0xD22...TP01",
+      "treasury": "0xD33...KT01",
+      "minStakeEth": 2.0,
+      "note": "Đã có giấy phép hoạt động giáo dục, mong muốn số hoá chứng chỉ khoá học tiếng Anh.",
+      "submittedAt": "18/07/2026"
+    }
+  ],
   "tenants": [
     {
       "id": "abc",
@@ -28,7 +41,7 @@
     }
   ],
   "operators": [
-    { "id": "me", "tenantId": "abc", "name": "Bạn (ví đang đăng nhập)", "stakeEth": 5.0, "isActive": true, "flaggedNote": null, "recoveryDelegateId": null },
+    { "id": "me", "tenantId": "abc", "name": "Bạn (ví đang đăng nhập)", "stakeEth": 0, "isActive": false, "bio": null, "flaggedNote": null, "recoveryDelegateId": null },
     { "id": "tran-b", "tenantId": "abc", "name": "Giảng viên Trần B", "stakeEth": 5.0, "isActive": true, "flaggedNote": null, "recoveryDelegateId": null },
     { "id": "le-d", "tenantId": "abc", "name": "Quản lý Lê D", "stakeEth": 10.0, "isActive": false, "flaggedNote": "Vừa nạp đủ cọc, chờ kích hoạt", "recoveryDelegateId": null },
     { "id": "le-c", "tenantId": "abc", "name": "Giảng viên Lê C", "stakeEth": 5.0, "isActive": true, "flaggedNote": "Tình nghi gian lận", "recoveryDelegateId": null },

@@ -9,20 +9,40 @@ const roleConfig = {
     'admin': { title: '<i class="fa-solid fa-server text-purple-400"></i> Admin Nền Tảng', defaultView: 'platform' }
 };
 
-const viewIds = ['verify', 'my-docs', 'explorer', 'issue', 'cosign', 'slash', 'recovery', 'revoke', 'platform', 'stake', 'config', 'hr', 'security', 'treasury', 'emergency-recovery'];
-const viewBgClass = { revoke: 'bg-amber-500', treasury: 'bg-amber-500', platform: 'bg-purple-600', explorer: 'bg-emerald-600' };
-const viewIconIdleClass = { revoke: 'text-amber-500', treasury: 'text-amber-500', platform: 'text-purple-500', stake: 'text-blue-400', security: 'text-indigo-400', recovery: 'text-amber-500', slash: 'text-red-400', config: 'text-emerald-400', explorer: 'text-emerald-400', 'emergency-recovery': 'text-amber-500' };
+const viewIds = ['verify', 'my-docs', 'explorer', 'issue', 'cosign', 'slash', 'recovery', 'revoke', 'platform', 'stake', 'config', 'hr', 'security', 'treasury', 'emergency-recovery', 'profile', 'join', 'apply-tenant'];
+const viewBgClass = { revoke: 'bg-amber-500', treasury: 'bg-amber-500', platform: 'bg-purple-600', explorer: 'bg-emerald-600', profile: 'bg-sky-600', join: 'bg-emerald-600', 'apply-tenant': 'bg-purple-600' };
+const viewIconIdleClass = { revoke: 'text-amber-500', treasury: 'text-amber-500', platform: 'text-purple-500', stake: 'text-blue-400', security: 'text-indigo-400', recovery: 'text-amber-500', slash: 'text-red-400', config: 'text-emerald-400', explorer: 'text-emerald-400', 'emergency-recovery': 'text-amber-500', profile: 'text-sky-400', join: 'text-emerald-400', 'apply-tenant': 'text-purple-400' };
 
 const renderers = {
     'my-docs': renderMyDocs, verify: resetVerify, explorer: renderExplorer, issue: renderIssue,
-    cosign: renderCosign, stake: renderStake, security: renderSecurity, recovery: renderRecovery,
+    cosign: renderCosign, stake: renderStake, security: renderSecurity, recovery: renderRecovery, profile: renderProfile,
+    join: renderJoin, 'apply-tenant': renderApplyTenant,
     hr: renderHr, slash: renderSlash, config: renderConfig, revoke: renderRevoke,
     platform: renderPlatform, treasury: renderTreasury, 'emergency-recovery': renderEmergencyRecovery
 };
 
+// 'recovery' is intentionally NOT gated: recoverOperatorByDelegate requires the delegate's
+// wallet to NOT already be an active operator (the opposite precondition of the others).
+const OPERATOR_GATED_VIEWS = ['issue', 'cosign', 'stake', 'security', 'profile'];
+
 async function init() {
     DATA = await fetch('data.json').then(r => r.json());
+    document.getElementById('gate-wallet-preview').innerText = DATA.currentUser.walletAddress;
     switchRole('public');
+}
+
+function connectWallet() {
+    const btn = document.getElementById('btn-connect-wallet');
+    btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div> Đang kết nối...`;
+    setTimeout(() => {
+        document.getElementById('connect-gate').classList.add('hidden');
+        document.getElementById('wallet-address-label').innerText = DATA.currentUser.walletAddress;
+    }, 700);
+}
+
+function disconnectWallet() {
+    document.getElementById('connect-gate').classList.remove('hidden');
+    document.getElementById('btn-connect-wallet').innerHTML = `<i class="fa-solid fa-wallet"></i> Kết Nối Ví`;
 }
 
 function me() { return DATA.operators.find(o => o.id === DATA.currentUser.operatorId); }
@@ -136,6 +156,9 @@ function switchView(viewId) {
     const activeSection = document.getElementById(`view-${viewId}`);
     if (activeSection) activeSection.classList.remove('hidden');
     renderers[viewId]?.();
+
+    const locked = OPERATOR_GATED_VIEWS.includes(viewId) && !me().isActive;
+    document.getElementById('operator-locked-overlay').classList.toggle('hidden', !locked);
 }
 
 function showToast(title, message, color = "emerald") {
@@ -273,6 +296,19 @@ function renderExplorer() {
 
     document.getElementById('explorer-tenant-table').innerHTML = DATA.tenants.map(t => `
         <tr class="border-b border-slate-100"><td class="p-3 font-medium text-sm">${t.name}</td><td class="p-3 text-sm font-bold text-blue-600">${fmtEth(t.stakeTotalEth)} ETH</td><td class="p-3">${t.isActive ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">ACTIVE</span>' : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">SUSPENDED</span>'}</td></tr>`).join('');
+
+    const tenantSelect = document.getElementById('explorer-operator-tenant-select');
+    const prevSelection = tenantSelect.value || MY_TENANT_ID;
+    tenantSelect.innerHTML = DATA.tenants.map(t => `<option value="${t.id}" ${t.id === prevSelection ? 'selected' : ''}>${t.name}</option>`).join('');
+    renderExplorerOperators(prevSelection);
+}
+
+function renderExplorerOperators(tenantId) {
+    const rows = DATA.operators.filter(o => o.tenantId === tenantId && !o.recovered);
+    document.getElementById('explorer-operator-table').innerHTML = rows.length
+        ? rows.map(op => `
+            <tr class="border-b border-slate-100"><td class="p-3 text-sm font-medium">${op.name}</td><td class="p-3 text-sm font-bold text-blue-600">${fmtEth(op.stakeEth)} ETH</td><td class="p-3">${op.isActive ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">HOẠT ĐỘNG</span>' : '<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-xs font-bold">NGƯNG</span>'}</td></tr>`).join('')
+        : `<tr><td colspan="3" class="p-6 text-center text-slate-400 text-sm">Chưa có nhân sự nào.</td></tr>`;
 }
 
 function lookupRecoveryAlias() {
@@ -375,7 +411,7 @@ function renderStake() {
     document.getElementById('stake-amount').innerText = `${fmtEth(op.stakeEth)} ETH`;
     document.getElementById('btn-unstake').classList.toggle('hidden', !!op.unstakePending);
     document.getElementById('unstake-pending-area').classList.toggle('hidden', !op.unstakePending);
-    document.getElementById('unstake-pending-area').innerText = `Đang đếm ngược Cooldown (${myTenant().unstakeCooldownHours}h)`;
+    document.getElementById('unstake-pending-text').innerText = `Đang trong thời gian chờ (Cooldown ${myTenant().unstakeCooldownHours}h) — sau khi hết hạn bạn tự rút, công ty không thể giữ tiền.`;
 
     const topupDisabled = !op.isActive;
     document.getElementById('btn-topup').disabled = topupDisabled;
@@ -386,7 +422,21 @@ function renderStake() {
 function requestUnstake() {
     const btn = document.getElementById('btn-unstake');
     btn.innerHTML = `<div class="loader border-red-600 border-top-transparent h-4 w-4"></div> Đang gửi lệnh...`;
-    setTimeout(() => { me().unstakePending = true; renderStake(); showToast("Thành công", "Chờ Cooldown."); }, 800);
+    setTimeout(() => { me().unstakePending = true; renderStake(); showToast("Thành công", "Yêu cầu rút cọc đã ghi nhận. Chờ Cooldown."); }, 800);
+}
+
+function executeUnstakeAction() {
+    const btn = document.getElementById('btn-execute-unstake');
+    btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div> Đang rút...`;
+    setTimeout(() => {
+        const op = me();
+        const amount = op.stakeEth;
+        op.stakeEth = 0;
+        op.isActive = false;
+        op.unstakePending = false;
+        renderStake();
+        showToast("Thành công", `Đã rút ${fmtEth(amount)} ETH về ví. Tư cách hoạt động đã kết thúc.`);
+    }, 800);
 }
 
 function topUpStake() {
@@ -426,6 +476,88 @@ function saveDelegate() {
     }, 500);
 }
 
+// ================= PROFILE (operator — requires already-active operator) =================
+function renderProfile() {
+    document.getElementById('profile-bio-input').value = me().bio || '';
+}
+
+function saveProfileMetadata() {
+    const btn = document.getElementById('btn-save-profile');
+    btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div>`;
+    setTimeout(() => {
+        me().bio = document.getElementById('profile-bio-input').value.trim();
+        btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Lưu Hồ Sơ`;
+        showToast("Thành công", "Đã cập nhật hồ sơ.");
+    }, 500);
+}
+
+// ================= JOIN AS OPERATOR (public — permissionless, no role required) =================
+function renderJoin() {
+    const t = myTenant();
+    const operator = me();
+    document.getElementById('join-tenant-name').innerText = t.name;
+    document.getElementById('join-min-stake').innerText = `${fmtEth(t.minStakeEth)} ETH`;
+    document.getElementById('join-already-active').classList.toggle('hidden', !operator.isActive);
+    document.getElementById('join-form-area').classList.toggle('hidden', operator.isActive);
+    if (operator.isActive) {
+        document.getElementById('join-active-summary').innerText = `Đang hoạt động tại ${t.name} với cọc ${fmtEth(operator.stakeEth)} ETH.`;
+    } else {
+        document.getElementById('join-stake-input').value = '';
+        document.getElementById('join-bio-input').value = '';
+    }
+}
+
+function joinAsOperatorAction() {
+    const t = myTenant();
+    const operator = me();
+    const stake = Number(document.getElementById('join-stake-input').value);
+    const bio = document.getElementById('join-bio-input').value.trim();
+
+    if (operator.isActive) { showToast("Lỗi", "Ví này đã đang hoạt động.", "red"); return; }
+    if (!t.isActive) { showToast("Lỗi", "Tổ chức đang tạm khoá, không nhận thành viên mới.", "red"); return; }
+    if (!stake || stake < t.minStakeEth) { showToast("Lỗi", `Cần đặt cọc tối thiểu ${fmtEth(t.minStakeEth)} ETH.`, "red"); return; }
+
+    const btn = document.getElementById('btn-join');
+    btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div> Đang gửi...`;
+    setTimeout(() => {
+        operator.isActive = true;
+        operator.stakeEth = stake;
+        operator.bio = bio;
+        t.stakeTotalEth += stake;
+        renderJoin();
+        btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Kích Hoạt Ví Làm Operator`;
+        showToast("Thành công", `Đã kích hoạt ví làm Operator với cọc ${fmtEth(stake)} ETH.`);
+    }, 800);
+}
+
+// ================= APPLY AS TENANT (public — request only, Protocol Admin executes createTenant) =================
+function renderApplyTenant() {
+    ['apply-tenant-name', 'apply-tenant-admin', 'apply-tenant-opmanager', 'apply-tenant-treasury', 'apply-tenant-minstake', 'apply-tenant-note']
+        .forEach(id => document.getElementById(id).value = '');
+}
+
+function submitTenantApplication() {
+    const name = document.getElementById('apply-tenant-name').value.trim();
+    const admin = document.getElementById('apply-tenant-admin').value.trim();
+    const opManager = document.getElementById('apply-tenant-opmanager').value.trim();
+    const treasury = document.getElementById('apply-tenant-treasury').value.trim();
+    const minStake = Number(document.getElementById('apply-tenant-minstake').value);
+    const note = document.getElementById('apply-tenant-note').value.trim();
+
+    if (!name || !admin || !opManager || !treasury) { showToast("Lỗi", "Điền đủ thông tin bắt buộc.", "red"); return; }
+    if (admin === opManager || admin === treasury || opManager === treasury) { showToast("Lỗi", "3 vai trò đề xuất phải là 3 địa chỉ khác nhau.", "red"); return; }
+    if (!minStake || minStake <= 0) { showToast("Lỗi", "Mức cọc tối thiểu đề xuất phải > 0.", "red"); return; }
+
+    const btn = document.getElementById('btn-apply-tenant');
+    btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div> Đang gửi...`;
+    setTimeout(() => {
+        DATA.tenantApplications.push({ id: `app-${Date.now()}`, name, admin, opManager, treasury, minStakeEth: minStake, note, submittedAt: TODAY });
+        renderApplyTenant();
+        btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Gửi Yêu Cầu Đăng Ký`;
+        showToast("Thành công", "Đã gửi yêu cầu, chờ Protocol Admin xét duyệt.");
+    }, 800);
+}
+
 // ================= RECOVERY BY DELEGATE (operator) =================
 function renderRecovery() {
     const lost = DATA.operators.find(o => o.recoveryDelegateId === DATA.currentUser.operatorId && !o.isActive && !o.recovered);
@@ -444,17 +576,26 @@ function executeRecovery() {
     btn.innerHTML = `<div class="loader border-white border-top-transparent h-5 w-5"></div> Đang di chuyển...`;
     setTimeout(() => {
         const lost = DATA.operators.find(o => o.id === operatorId);
+        const operator = me();
+        // Mirrors RecoveryLib.recoverOperatorByDelegate: stake + metadata migrate, but
+        // isActive carries over as-is from the lost operator — which is always false here
+        // (recovery requires the lost operator to already be inactive). Tenant's Operator
+        // Manager still has to re-activate via HR, same as the real contract flow.
+        operator.stakeEth = lost.stakeEth;
+        operator.isActive = false;
+        operator.bio = lost.bio || null;
+        operator.recoveryDelegateId = null;
         lost.recovered = true;
         DATA.recoveryAliases.push({ currentOperatorId: DATA.currentUser.operatorId, rootAddress: operatorId, tenantName: myTenant().name, recoveredAt: TODAY, reason: 'Tự khôi phục qua ví dự phòng' });
         document.getElementById('recovery-action-area').classList.add('hidden');
         document.getElementById('recovery-success-area').classList.remove('hidden');
-        showToast("Thành công", "Tài sản an toàn.");
+        showToast("Thành công", "Đã nhận cọc & hồ sơ. Tài khoản vẫn cần Operator Manager kích hoạt lại trước khi ký được.");
     }, 1200);
 }
 
 // ================= HR (tenant) =================
 function renderHr() {
-    const rows = DATA.operators.filter(o => o.tenantId === MY_TENANT_ID && o.id !== 'me' && !o.recovered);
+    const rows = DATA.operators.filter(o => o.tenantId === MY_TENANT_ID && !o.recovered);
     document.getElementById('hr-table-body').innerHTML = rows.map(op => `
         <tr class="border-b border-slate-100 hover:bg-slate-50">
             <td class="p-4"><p class="font-bold text-slate-800 text-sm">${op.name}</p>${op.flaggedNote ? `<p class="text-xs text-amber-600">${op.flaggedNote}</p>` : ''}</td>
@@ -465,6 +606,7 @@ function renderHr() {
 
 function toggleHrActive(operatorId) {
     const op = DATA.operators.find(o => o.id === operatorId);
+    if (!op.isActive && !op.stakeEth) { showToast("Lỗi", "Ví này chưa từng đặt cọc — không có gì để kích hoạt.", "red"); return; }
     op.isActive = !op.isActive;
     if (op.isActive) op.flaggedNote = null;
     renderHr();
@@ -473,7 +615,7 @@ function toggleHrActive(operatorId) {
 
 // ================= SLASH (tenant) =================
 function renderSlash() {
-    const rows = DATA.operators.filter(o => o.tenantId === MY_TENANT_ID && o.id !== 'me' && o.isActive);
+    const rows = DATA.operators.filter(o => o.tenantId === MY_TENANT_ID && o.isActive);
     document.getElementById('slash-table-body').innerHTML = rows.map(op => `
         <tr class="border-b border-slate-100" id="row-operator-${op.id}">
             <td class="p-4"><p class="font-semibold text-sm">${op.name}</p>${op.flaggedNote ? `<p class="text-xs text-red-500"><i class="fa-solid fa-flag"></i> ${op.flaggedNote}</p>` : ''}</td>
@@ -665,6 +807,23 @@ function renderRevokePending(docId) {
 
 // ================= PLATFORM (protocol admin) =================
 function renderPlatform() {
+    const apps = DATA.tenantApplications;
+    document.getElementById('tenant-applications-list').innerHTML = apps.length
+        ? apps.map(a => `
+            <div class="p-6 border-b border-slate-100 flex items-start justify-between gap-4">
+                <div>
+                    <p class="font-bold text-slate-800">${a.name}</p>
+                    <p class="text-xs text-slate-500 font-mono mt-1">Admin: ${a.admin} · QL Vận hành: ${a.opManager} · Treasury: ${a.treasury}</p>
+                    <p class="text-xs text-slate-500 mt-1">Đề xuất cọc tối thiểu: ${fmtEth(a.minStakeEth)} ETH</p>
+                    ${a.note ? `<p class="text-sm text-slate-600 mt-2 bg-slate-50 rounded-lg p-2">${a.note}</p>` : ''}
+                </div>
+                <div class="flex gap-2 shrink-0">
+                    <button onclick="approveApplication('${a.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-check"></i> Duyệt</button>
+                    <button onclick="rejectApplication('${a.id}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg text-sm font-bold">Từ chối</button>
+                </div>
+            </div>`).join('')
+        : `<div class="p-8 text-center text-slate-400 text-sm">Không có yêu cầu nào đang chờ.</div>`;
+
     document.getElementById('tenant-table-body').innerHTML = DATA.tenants.map(t => `
         <tr class="border-b border-slate-100 ${t.isActive ? '' : 'bg-red-50'}">
             <td class="p-4 font-bold text-blue-800">${t.name}</td>
@@ -682,6 +841,19 @@ function toggleTenantStatus(tenantId) {
     showToast("Thành công", "Đã cập nhật.", t.isActive ? "emerald" : "red");
 }
 
+function slugify(name) {
+    return (name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')) || `tenant-${Date.now()}`;
+}
+
+function validateNewTenant({ id, name, admin, opManager, treasury, minStake, cooldown }) {
+    if (!id || !name || !admin || !opManager || !treasury) return 'Điền đủ thông tin bắt buộc.';
+    if (DATA.tenants.some(t => t.id === id)) return 'Mã tổ chức đã tồn tại.';
+    if (admin === opManager || admin === treasury || opManager === treasury) return '3 vai trò (Admin/QL vận hành/Treasury) phải là 3 địa chỉ khác nhau.';
+    if (!minStake || minStake <= 0) return 'Mức cọc tối thiểu phải > 0.';
+    if (!cooldown || cooldown <= 0) return 'Thời gian chờ rút cọc phải > 0.';
+    return null;
+}
+
 function createTenant() {
     const id = document.getElementById('new-tenant-id').value.trim();
     const name = document.getElementById('new-tenant-name').value.trim();
@@ -691,10 +863,8 @@ function createTenant() {
     const minStake = Number(document.getElementById('new-tenant-minstake').value);
     const cooldown = Number(document.getElementById('new-tenant-cooldown').value);
 
-    if (!id || !name || !admin || !opManager || !treasury) { showToast("Lỗi", "Điền đủ thông tin bắt buộc.", "red"); return; }
-    if (DATA.tenants.some(t => t.id === id)) { showToast("Lỗi", "Mã tổ chức đã tồn tại.", "red"); return; }
-    if (admin === opManager || admin === treasury || opManager === treasury) { showToast("Lỗi", "3 vai trò (Admin/QL vận hành/Treasury) phải là 3 địa chỉ khác nhau.", "red"); return; }
-    if (!minStake || minStake <= 0 || !cooldown || cooldown <= 0) { showToast("Lỗi", "Mức cọc tối thiểu và cooldown phải > 0.", "red"); return; }
+    const error = validateNewTenant({ id, name, admin, opManager, treasury, minStake, cooldown });
+    if (error) { showToast("Lỗi", error, "red"); return; }
 
     const btn = document.getElementById('btn-create-tenant');
     btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div>`;
@@ -705,6 +875,26 @@ function createTenant() {
         renderPlatform();
         showToast("Thành công", `Đã khởi tạo tổ chức "${name}" trên chuỗi.`);
     }, 800);
+}
+
+function approveApplication(appId) {
+    const app = DATA.tenantApplications.find(a => a.id === appId);
+    if (!app) return;
+    const id = slugify(app.name);
+    const error = validateNewTenant({ id, name: app.name, admin: app.admin, opManager: app.opManager, treasury: app.treasury, minStake: app.minStakeEth, cooldown: 24 });
+    if (error) { showToast("Lỗi", `Không thể duyệt: ${error}`, "red"); return; }
+
+    DATA.tenants.push({ id, name: app.name, admin: app.admin, operatorManager: app.opManager, treasury: app.treasury, isActive: true, minStakeEth: app.minStakeEth, unstakeCooldownHours: 24, stakeTotalEth: 0 });
+    DATA.tenantApplications = DATA.tenantApplications.filter(a => a.id !== appId);
+    renderPlatform();
+    showToast("Thành công", `Đã duyệt & khởi tạo "${app.name}" trên chuỗi.`);
+}
+
+function rejectApplication(appId) {
+    const app = DATA.tenantApplications.find(a => a.id === appId);
+    DATA.tenantApplications = DATA.tenantApplications.filter(a => a.id !== appId);
+    renderPlatform();
+    showToast("Đã từ chối", `Yêu cầu của "${app.name}" đã bị từ chối.`, "amber");
 }
 
 // ================= TREASURY (tenant) =================
