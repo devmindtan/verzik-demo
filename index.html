@@ -49,12 +49,13 @@
 </head>
 <body class="h-screen flex flex-col overflow-hidden text-slate-800">
 
-    <!-- ================= WALLET CONNECT GATE (trước khi "đăng nhập") ================= -->
-    <div id="connect-gate" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-6">
-        <div class="max-w-md w-full text-center">
+    <!-- ================= WALLET CONNECT MODAL (không bắt buộc — chỉ hiện khi cần) ================= -->
+    <div id="connect-gate" class="hidden fixed inset-0 bg-slate-900/70 z-[100] items-center justify-center p-6">
+        <div class="max-w-md w-full text-center bg-slate-900 rounded-2xl p-8 relative">
+            <button onclick="closeConnectModal()" class="absolute top-4 right-4 text-slate-500 hover:text-white" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button>
             <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-2xl text-white mx-auto mb-6"><i class="fa-solid fa-link"></i></div>
             <h1 class="text-2xl font-bold text-white mb-2">TrustChain</h1>
-            <p class="text-slate-400 mb-8">Kết nối ví để bắt đầu. Trước khi kết nối, bạn chỉ là khách vãng lai — chưa xác định được bạn đang giữ vai trò gì trên hệ thống.</p>
+            <p class="text-slate-400 mb-8">Kết nối ví để thực hiện thao tác này. Bạn vẫn có thể tiếp tục xem dữ liệu công khai (Xác minh, Sổ Cái) mà không cần kết nối.</p>
             <button onclick="connectWallet()" id="btn-connect-wallet" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"><i class="fa-solid fa-wallet"></i> Kết Nối Ví</button>
             <p class="text-xs text-slate-500 mt-4">Demo: ví sẽ được gán địa chỉ mẫu <span class="font-mono" id="gate-wallet-preview"></span></p>
         </div>
@@ -71,11 +72,14 @@
         </div>
 
         <div class="flex items-center gap-2 sm:gap-4 min-w-0">
-            <div class="hidden md:flex items-center gap-2 text-sm border-r border-slate-200 pr-4 shrink-0">
+            <div class="hidden items-center gap-2 text-sm border-r border-slate-200 pr-4 shrink-0" id="wallet-connected-badge">
                 <i class="fa-solid fa-circle text-emerald-500 text-[8px]"></i>
                 <span class="font-mono text-slate-500" id="wallet-address-label"></span>
                 <button onclick="disconnectWallet()" class="text-slate-400 hover:text-red-500 ml-1" title="Ngắt kết nối"><i class="fa-solid fa-right-from-bracket"></i></button>
             </div>
+            <button onclick="openConnectModal()" id="btn-header-connect" class="flex items-center gap-2 text-sm font-semibold text-blue-600 border border-blue-200 hover:bg-blue-50 px-3 py-1.5 rounded-lg shrink-0">
+                <i class="fa-solid fa-wallet"></i><span class="hidden sm:inline">Kết Nối Ví</span>
+            </button>
             <span class="hidden lg:inline text-sm font-semibold text-slate-500 uppercase tracking-wider shrink-0">Đóng vai (Role):</span>
             <div id="role-switcher-scroll" class="flex bg-slate-100 p-1 rounded-lg border border-slate-200 max-w-[55vw] sm:max-w-none overflow-x-auto">
                 <button onclick="switchRole('public')" id="role-public" class="px-2.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all bg-slate-800 text-white shadow whitespace-nowrap">
@@ -146,7 +150,10 @@
 
                     <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2">Cá nhân</p>
                     <nav class="space-y-1">
-                        <button onclick="switchView('my-docs')" id="nav-my-docs" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors bg-blue-600 text-white">
+                        <button onclick="switchView('account')" id="nav-account" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-address-card w-5 text-center text-sky-400"></i><span class="text-sm font-medium">Hồ Sơ Cá Nhân</span>
+                        </button>
+                        <button onclick="switchView('my-docs')" id="nav-my-docs" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
                             <i class="fa-solid fa-wallet w-5 text-center"></i><span class="text-sm font-medium">Kho Chứng Từ Của Tôi</span>
                         </button>
                     </nav>
@@ -247,6 +254,16 @@
         <!-- Main Content Area -->
         <main class="flex-1 overflow-y-auto bg-slate-50 relative" id="main-container">
 
+            <!-- Khoá mọi trang cần biết danh tính khi chưa kết nối ví (trừ Verify/Explorer — đọc công khai) -->
+            <div id="connect-required-overlay" class="hidden absolute inset-0 bg-slate-50/95 backdrop-blur-sm z-30 flex items-center justify-center p-8">
+                <div class="max-w-sm text-center bg-white rounded-2xl border border-slate-200 shadow-xl p-8">
+                    <div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-wallet"></i></div>
+                    <h3 class="font-bold text-lg text-slate-800 mb-2">Cần Kết Nối Ví</h3>
+                    <p class="text-sm text-slate-500 mb-6">Trang này cần biết ví của bạn để hiển thị đúng dữ liệu hoặc thực hiện giao dịch. Xem dữ liệu công khai (Xác minh, Sổ Cái) thì không cần kết nối.</p>
+                    <button onclick="openConnectModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-bold"><i class="fa-solid fa-wallet"></i> Kết Nối Ví</button>
+                </div>
+            </div>
+
             <!-- Khoá các trang nghiệp vụ Operator khi ví chưa gia nhập tổ chức nào (chưa "trở thành" Operator) -->
             <div id="operator-locked-overlay" class="hidden absolute inset-0 bg-slate-50/95 backdrop-blur-sm z-30 flex items-center justify-center p-8">
                 <div class="max-w-sm text-center bg-white rounded-2xl border border-slate-200 shadow-xl p-8">
@@ -257,8 +274,38 @@
                 </div>
             </div>
 
+            <!-- ================= VIEW: HỒ SƠ CÁ NHÂN (PUBLIC, cần kết nối ví) ================= -->
+            <section id="view-account" class="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto hidden fade-in">
+                <div class="mb-8"><h2 class="text-2xl font-bold text-slate-800">Hồ Sơ Cá Nhân</h2><p class="text-slate-500">Tổng hợp mọi thông tin & vai trò gắn với ví đang kết nối</p></div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6 flex items-center gap-4">
+                    <div class="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 text-xl shrink-0"><i class="fa-solid fa-user"></i></div>
+                    <div class="min-w-0">
+                        <p class="font-bold text-lg text-slate-800" id="account-name"></p>
+                        <p class="text-sm font-mono text-slate-500 truncate" id="account-address"></p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-2">Tư Cách Operator</p>
+                        <p class="text-sm text-slate-700" id="account-operator-status"></p>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-2">Vai Trò Quản Trị Tổ Chức</p>
+                        <p class="text-sm text-slate-700" id="account-governance-status"></p>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-2">Chứng Từ Sở Hữu</p>
+                        <p class="text-sm text-slate-700" id="account-docs-status"></p>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-2">Ví Dự Phòng Cho</p>
+                        <p class="text-sm text-slate-700" id="account-delegate-status"></p>
+                    </div>
+                </div>
+            </section>
+
             <!-- ================= VIEW: KHO CHỨNG TỪ CỦA TÔI (PUBLIC) ================= -->
-            <section id="view-my-docs" class="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto h-full fade-in">
+            <section id="view-my-docs" class="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto h-full fade-in hidden">
                 <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-8">
                     <div>
                         <h2 class="text-3xl font-bold text-slate-800 mb-1">Ví Chứng Từ Cá Nhân</h2>
@@ -446,11 +493,13 @@
                 </div>
 
                 <div id="join-form-area" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                    <p class="text-sm text-slate-500 mb-4">Đặt cọc đủ mức tối thiểu của tổ chức là được kích hoạt ngay lập tức (<code class="text-xs bg-slate-100 px-1 rounded">joinAsOperator</code> — permissionless, hệ thống chỉ từ chối nếu tổ chức đang tạm khoá, cọc chưa đủ, hoặc ví này đã đang hoạt động).</p>
+                    <p class="text-sm text-slate-500 mb-4">Chọn tổ chức muốn gia nhập, đặt cọc đủ mức tối thiểu là được kích hoạt ngay lập tức (<code class="text-xs bg-slate-100 px-1 rounded">joinAsOperator(tenantId, ...)</code> — permissionless, hệ thống chỉ từ chối nếu tổ chức đang tạm khoá, cọc chưa đủ, hoặc ví này đã đang hoạt động).</p>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Tổ chức muốn gia nhập</label>
+                    <select id="join-tenant-select" onchange="renderJoin()" class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm mb-3"></select>
                     <input type="number" id="join-stake-input" placeholder="Số ETH đặt cọc" class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm mb-3">
                     <textarea id="join-bio-input" rows="2" class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm mb-3" placeholder="Hồ sơ giới thiệu / CV rút gọn (tuỳ chọn)..."></textarea>
                     <button onclick="joinAsOperatorAction()" id="btn-join" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-bold transition-colors"><i class="fa-solid fa-right-to-bracket"></i> Kích Hoạt Ví Làm Operator</button>
-                    <p class="text-xs text-slate-400 mt-3">Mức cọc tối thiểu hiện tại của <span id="join-tenant-name" class="font-medium"></span>: <span id="join-min-stake" class="font-bold text-slate-600"></span></p>
+                    <p class="text-xs text-slate-400 mt-3">Mức cọc tối thiểu của <span id="join-tenant-name" class="font-medium"></span>: <span id="join-min-stake" class="font-bold text-slate-600"></span></p>
                 </div>
             </section>
 

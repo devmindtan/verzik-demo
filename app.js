@@ -3,27 +3,32 @@ const TODAY = '21/07/2026';
 const MY_TENANT_ID = 'abc';
 
 const roleConfig = {
-    'public': { title: '<i class="fa-solid fa-earth-americas text-slate-400"></i> Dịch Vụ Công Cộng', defaultView: 'my-docs' },
+    'public': { title: '<i class="fa-solid fa-earth-americas text-slate-400"></i> Dịch Vụ Công Cộng', defaultView: 'explorer' },
     'operator': { title: '<i class="fa-solid fa-user-tie text-blue-400"></i> Portal Nhân Viên', defaultView: 'issue' },
     'tenant': { title: '<i class="fa-solid fa-building-shield text-amber-400"></i> Admin Doanh Nghiệp', defaultView: 'hr' },
     'admin': { title: '<i class="fa-solid fa-server text-purple-400"></i> Admin Nền Tảng', defaultView: 'platform' }
 };
 
-const viewIds = ['verify', 'my-docs', 'explorer', 'issue', 'cosign', 'slash', 'recovery', 'revoke', 'platform', 'stake', 'config', 'hr', 'security', 'treasury', 'emergency-recovery', 'profile', 'join', 'apply-tenant'];
-const viewBgClass = { revoke: 'bg-amber-500', treasury: 'bg-amber-500', platform: 'bg-purple-600', explorer: 'bg-emerald-600', profile: 'bg-sky-600', join: 'bg-emerald-600', 'apply-tenant': 'bg-purple-600' };
-const viewIconIdleClass = { revoke: 'text-amber-500', treasury: 'text-amber-500', platform: 'text-purple-500', stake: 'text-blue-400', security: 'text-indigo-400', recovery: 'text-amber-500', slash: 'text-red-400', config: 'text-emerald-400', explorer: 'text-emerald-400', 'emergency-recovery': 'text-amber-500', profile: 'text-sky-400', join: 'text-emerald-400', 'apply-tenant': 'text-purple-400' };
+const viewIds = ['verify', 'my-docs', 'account', 'explorer', 'issue', 'cosign', 'slash', 'recovery', 'revoke', 'platform', 'stake', 'config', 'hr', 'security', 'treasury', 'emergency-recovery', 'profile', 'join', 'apply-tenant'];
+const viewBgClass = { revoke: 'bg-amber-500', treasury: 'bg-amber-500', platform: 'bg-purple-600', explorer: 'bg-emerald-600', profile: 'bg-sky-600', join: 'bg-emerald-600', 'apply-tenant': 'bg-purple-600', account: 'bg-sky-600' };
+const viewIconIdleClass = { revoke: 'text-amber-500', treasury: 'text-amber-500', platform: 'text-purple-500', stake: 'text-blue-400', security: 'text-indigo-400', recovery: 'text-amber-500', slash: 'text-red-400', config: 'text-emerald-400', explorer: 'text-emerald-400', 'emergency-recovery': 'text-amber-500', profile: 'text-sky-400', join: 'text-emerald-400', 'apply-tenant': 'text-purple-400', account: 'text-sky-400' };
 
 const renderers = {
-    'my-docs': renderMyDocs, verify: resetVerify, explorer: renderExplorer, issue: renderIssue,
+    'my-docs': renderMyDocs, account: renderAccount, verify: resetVerify, explorer: renderExplorer, issue: renderIssue,
     cosign: renderCosign, stake: renderStake, security: renderSecurity, recovery: renderRecovery, profile: renderProfile,
     join: renderJoin, 'apply-tenant': renderApplyTenant,
     hr: renderHr, slash: renderSlash, config: renderConfig, revoke: renderRevoke,
     platform: renderPlatform, treasury: renderTreasury, 'emergency-recovery': renderEmergencyRecovery
 };
 
-// 'recovery' is intentionally NOT gated: recoverOperatorByDelegate requires the delegate's
-// wallet to NOT already be an active operator (the opposite precondition of the others).
+// Reading public chain data never needs a wallet. Everything else — even just seeing
+// "your" documents/profile — needs to know who you are, so it requires a connection.
+const NO_WALLET_VIEWS = ['verify', 'explorer'];
+// 'recovery' is intentionally NOT gated on active-operator status: recoverOperatorByDelegate
+// requires the delegate's wallet to NOT already be an active operator (opposite precondition).
 const OPERATOR_GATED_VIEWS = ['issue', 'cosign', 'stake', 'security', 'profile'];
+
+let walletConnected = false;
 
 async function init() {
     DATA = await fetch('data.json').then(r => r.json());
@@ -31,22 +36,46 @@ async function init() {
     switchRole('public');
 }
 
+function openConnectModal() { document.getElementById('connect-gate').classList.remove('hidden'); }
+function closeConnectModal() { document.getElementById('connect-gate').classList.add('hidden'); }
+
 function connectWallet() {
     const btn = document.getElementById('btn-connect-wallet');
     btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div> Đang kết nối...`;
     setTimeout(() => {
-        document.getElementById('connect-gate').classList.add('hidden');
+        walletConnected = true;
+        closeConnectModal();
+        btn.innerHTML = `<i class="fa-solid fa-wallet"></i> Kết Nối Ví`;
         document.getElementById('wallet-address-label').innerText = DATA.currentUser.walletAddress;
+        document.getElementById('wallet-connected-badge').classList.remove('hidden');
+        document.getElementById('wallet-connected-badge').classList.add('flex');
+        document.getElementById('btn-header-connect').classList.add('hidden');
+        switchView(currentViewId);
     }, 700);
 }
 
 function disconnectWallet() {
-    document.getElementById('connect-gate').classList.remove('hidden');
-    document.getElementById('btn-connect-wallet').innerHTML = `<i class="fa-solid fa-wallet"></i> Kết Nối Ví`;
+    walletConnected = false;
+    document.getElementById('wallet-connected-badge').classList.add('hidden');
+    document.getElementById('wallet-connected-badge').classList.remove('flex');
+    document.getElementById('btn-header-connect').classList.remove('hidden');
+    switchView(currentViewId);
+}
+
+function openSidebar() {
+    document.getElementById('app-sidebar').classList.add('sidebar-open');
+    document.getElementById('sidebar-backdrop').classList.remove('hidden');
+}
+function closeSidebar() {
+    document.getElementById('app-sidebar').classList.remove('sidebar-open');
+    document.getElementById('sidebar-backdrop').classList.add('hidden');
 }
 
 function me() { return DATA.operators.find(o => o.id === DATA.currentUser.operatorId); }
 function myTenant() { return DATA.tenants.find(t => t.id === MY_TENANT_ID); }
+// The tenant 'me' actually joined (chosen on the Join page) — distinct from myTenant(),
+// which is the fixed company the Tenant-role dashboards manage.
+function operatorTenant() { return DATA.tenants.find(t => t.id === me().tenantId) || myTenant(); }
 function fmtEth(n) { return Number(n).toFixed(2); }
 function roleLabel(roleId) { return DATA.roleCatalog.find(r => r.roleId === roleId)?.label || `Role ${roleId}`; }
 function policyFor(docType) { return DATA.coSignPolicies.find(p => p.docType === docType); }
@@ -115,11 +144,11 @@ function switchRole(roleId) {
     ['public', 'operator', 'tenant', 'admin'].forEach(r => {
         const btn = document.getElementById(`role-${r}`);
         if (r === roleId) {
-            btn.className = `px-4 py-1.5 rounded-md text-sm font-bold transition-all shadow text-white ${r === 'public' ? 'bg-slate-800' : (r === 'operator' ? 'bg-blue-600' : (r === 'tenant' ? 'bg-amber-600' : 'bg-purple-600'))}`;
+            btn.className = `px-2.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all shadow whitespace-nowrap text-white ${r === 'public' ? 'bg-slate-800' : (r === 'operator' ? 'bg-blue-600' : (r === 'tenant' ? 'bg-amber-600' : 'bg-purple-600'))}`;
             btn.querySelector('i').classList.remove('text-slate-300', 'text-blue-600', 'text-amber-600', 'text-purple-600');
             btn.querySelector('i').classList.add('text-white', 'mr-1');
         } else {
-            btn.className = `px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-600 hover:text-${r === 'operator' ? 'blue' : (r === 'tenant' ? 'amber' : 'purple')}-600`;
+            btn.className = `px-2.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap text-slate-600 hover:text-${r === 'operator' ? 'blue' : (r === 'tenant' ? 'amber' : 'purple')}-600`;
             btn.querySelector('i').className = `fa-solid ${r === 'public' ? 'fa-earth-americas text-slate-400' : (r === 'operator' ? 'fa-user-tie' : (r === 'tenant' ? 'fa-building-shield' : 'fa-server'))} mr-1`;
         }
     });
@@ -132,7 +161,10 @@ function switchRole(roleId) {
     switchView(roleConfig[roleId].defaultView);
 }
 
+let currentViewId = 'explorer';
+
 function switchView(viewId) {
+    currentViewId = viewId;
     viewIds.forEach(id => {
         const btn = document.getElementById(`nav-${id}`);
         const isSelected = id === viewId;
@@ -157,8 +189,11 @@ function switchView(viewId) {
     if (activeSection) activeSection.classList.remove('hidden');
     renderers[viewId]?.();
 
-    const locked = OPERATOR_GATED_VIEWS.includes(viewId) && !me().isActive;
-    document.getElementById('operator-locked-overlay').classList.toggle('hidden', !locked);
+    const needsWallet = !NO_WALLET_VIEWS.includes(viewId) && !walletConnected;
+    document.getElementById('connect-required-overlay').classList.toggle('hidden', !needsWallet);
+
+    const needsOperator = !needsWallet && OPERATOR_GATED_VIEWS.includes(viewId) && !me().isActive;
+    document.getElementById('operator-locked-overlay').classList.toggle('hidden', !needsOperator);
 }
 
 function showToast(title, message, color = "emerald") {
@@ -211,6 +246,32 @@ function renderMyDocs() {
             </div>`}
         </div>`;
     }).join('');
+}
+
+// ================= ACCOUNT (personal profile — aggregates everything this wallet holds) =================
+function renderAccount() {
+    document.getElementById('account-name').innerText = DATA.currentUser.publicName;
+    document.getElementById('account-address').innerText = DATA.currentUser.walletAddress;
+
+    const op = me();
+    document.getElementById('account-operator-status').innerText = op.isActive
+        ? `Đang hoạt động tại ${DATA.tenants.find(t => t.id === op.tenantId)?.name || op.tenantId} — cọc ${fmtEth(op.stakeEth)} ETH.`
+        : (op.stakeEth > 0 ? `Đã từng đặt cọc (${fmtEth(op.stakeEth)} ETH) nhưng đang tạm ngưng hoạt động.` : 'Chưa gia nhập tổ chức nào.');
+
+    const governance = DATA.tenants.filter(t => [t.admin, t.operatorManager, t.treasury].includes(DATA.currentUser.walletAddress));
+    document.getElementById('account-governance-status').innerText = governance.length
+        ? governance.map(t => t.name).join(', ')
+        : 'Không giữ vai trò quản trị (Admin/QL Vận hành/Treasury) của tổ chức nào.';
+
+    const docs = DATA.documents.filter(d => d.owner === DATA.currentUser.publicName);
+    document.getElementById('account-docs-status').innerText = docs.length
+        ? `${docs.length} chứng từ (${docs.filter(d => d.status === 'valid').length} hợp lệ).`
+        : 'Chưa sở hữu chứng từ nào.';
+
+    const delegateFor = DATA.operators.filter(o => o.recoveryDelegateId === DATA.currentUser.operatorId && !o.recovered);
+    document.getElementById('account-delegate-status').innerText = delegateFor.length
+        ? `Là ví dự phòng cho: ${delegateFor.map(o => o.name).join(', ')}.`
+        : 'Chưa được ai chỉ định làm ví dự phòng.';
 }
 
 // ================= VERIFY (public) =================
@@ -333,7 +394,7 @@ function renderIssue() {
     document.getElementById('issue-doctype-select').innerHTML = DATA.coSignPolicies.map(p =>
         `<option value="${p.docType}">${p.label}${p.enabled ? ` (Cần ${p.minSigners} chữ ký tin cậy)` : ' (Không cần đồng ký)'}</option>`).join('');
 
-    const myDocs = DATA.documents.filter(d => d.tenantId === MY_TENANT_ID);
+    const myDocs = DATA.documents.filter(d => d.tenantId === me().tenantId);
     document.getElementById('issue-history-list').innerHTML = myDocs.map(d =>
         `<div class="p-3 border border-slate-100 rounded-lg bg-slate-50"><p class="font-semibold text-sm">${d.id}</p><p class="text-xs text-slate-500">${d.owner}</p></div>`).join('');
 }
@@ -350,15 +411,16 @@ function handleIssue() {
         const issuerCounts = policy && policy.enabled ? !!(wl && me().stakeEth >= policy.minStakeEth) : true;
         const id = `CERT-${Math.floor(1000 + Math.random() * 9000)}-NEW`;
         const cid = `Qm${Math.random().toString(36).slice(2, 15)}${Math.random().toString(36).slice(2, 15)}`;
+        const t = operatorTenant();
         const pages = policy && policy.enabled
             ? [
-                { heading: 'Trang bìa', body: `${policy.label.toUpperCase()}\n\nCấp cho: ${owner}\n${myTenant().name}` },
+                { heading: 'Trang bìa', body: `${policy.label.toUpperCase()}\n\nCấp cho: ${owner}\n${t.name}` },
                 { heading: 'Nội dung', body: `Tài liệu được neo trên IPFS (CID: ${cid}) và đối chiếu bằng fileHash trên chuỗi.` },
                 { heading: 'Chữ ký & Xác thực số', body: `Ký bởi: ${me().name}\nMã băm tài liệu được neo trên chuỗi, đối chiếu được với nội dung trang này để chống làm giả.` }
               ]
-            : [{ heading: policy ? policy.label : `Loại ${docType}`, body: `Cấp cho: ${owner}\n${myTenant().name}` }];
+            : [{ heading: policy ? policy.label : `Loại ${docType}`, body: `Cấp cho: ${owner}\n${t.name}` }];
         DATA.documents.push({
-            id, title: `Chứng Từ (${policy ? policy.label : docType})`, owner, tenantId: MY_TENANT_ID, tenantName: myTenant().name,
+            id, title: `Chứng Từ (${policy ? policy.label : docType})`, owner, tenantId: t.id, tenantName: t.name,
             issuer: me().name, issuedAt: TODAY, docType, status: 'valid', cid, content: { pages },
             coSign: { trustedCount: issuerCounts ? 1 : 0, trustedRoleIds: issuerCounts && wl ? [wl.roleId] : [], qualified: false }
         });
@@ -372,7 +434,7 @@ function handleIssue() {
 
 // ================= COSIGN (operator) =================
 function renderCosign() {
-    const pending = DATA.documents.filter(d => d.tenantId === MY_TENANT_ID && d.status === 'valid' && !isDocQualified(d));
+    const pending = DATA.documents.filter(d => d.tenantId === me().tenantId && d.status === 'valid' && !isDocQualified(d));
     document.getElementById('cosign-badge').innerText = pending.length;
     document.getElementById('empty-cosign').classList.toggle('hidden', pending.length > 0);
     document.getElementById('cosign-table-body').innerHTML = pending.map(d => `
@@ -411,7 +473,7 @@ function renderStake() {
     document.getElementById('stake-amount').innerText = `${fmtEth(op.stakeEth)} ETH`;
     document.getElementById('btn-unstake').classList.toggle('hidden', !!op.unstakePending);
     document.getElementById('unstake-pending-area').classList.toggle('hidden', !op.unstakePending);
-    document.getElementById('unstake-pending-text').innerText = `Đang trong thời gian chờ (Cooldown ${myTenant().unstakeCooldownHours}h) — sau khi hết hạn bạn tự rút, công ty không thể giữ tiền.`;
+    document.getElementById('unstake-pending-text').innerText = `Đang trong thời gian chờ (Cooldown ${operatorTenant().unstakeCooldownHours}h) — sau khi hết hạn bạn tự rút, công ty không thể giữ tiền.`;
 
     const topupDisabled = !op.isActive;
     document.getElementById('btn-topup').disabled = topupDisabled;
@@ -493,14 +555,19 @@ function saveProfileMetadata() {
 
 // ================= JOIN AS OPERATOR (public — permissionless, no role required) =================
 function renderJoin() {
-    const t = myTenant();
     const operator = me();
+    const select = document.getElementById('join-tenant-select');
+    const prevValue = select.value || operator.tenantId || DATA.tenants[0].id;
+    select.innerHTML = DATA.tenants.map(t => `<option value="${t.id}" ${t.id === prevValue ? 'selected' : ''}>${t.name}</option>`).join('');
+    const t = DATA.tenants.find(x => x.id === select.value) || DATA.tenants[0];
+
     document.getElementById('join-tenant-name').innerText = t.name;
     document.getElementById('join-min-stake').innerText = `${fmtEth(t.minStakeEth)} ETH`;
     document.getElementById('join-already-active').classList.toggle('hidden', !operator.isActive);
     document.getElementById('join-form-area').classList.toggle('hidden', operator.isActive);
     if (operator.isActive) {
-        document.getElementById('join-active-summary').innerText = `Đang hoạt động tại ${t.name} với cọc ${fmtEth(operator.stakeEth)} ETH.`;
+        const activeTenant = DATA.tenants.find(x => x.id === operator.tenantId);
+        document.getElementById('join-active-summary').innerText = `Đang hoạt động tại ${activeTenant.name} với cọc ${fmtEth(operator.stakeEth)} ETH.`;
     } else {
         document.getElementById('join-stake-input').value = '';
         document.getElementById('join-bio-input').value = '';
@@ -508,7 +575,8 @@ function renderJoin() {
 }
 
 function joinAsOperatorAction() {
-    const t = myTenant();
+    const tenantId = document.getElementById('join-tenant-select').value;
+    const t = DATA.tenants.find(x => x.id === tenantId);
     const operator = me();
     const stake = Number(document.getElementById('join-stake-input').value);
     const bio = document.getElementById('join-bio-input').value.trim();
@@ -521,12 +589,13 @@ function joinAsOperatorAction() {
     btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div> Đang gửi...`;
     setTimeout(() => {
         operator.isActive = true;
+        operator.tenantId = tenantId;
         operator.stakeEth = stake;
         operator.bio = bio;
         t.stakeTotalEth += stake;
         renderJoin();
         btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Kích Hoạt Ví Làm Operator`;
-        showToast("Thành công", `Đã kích hoạt ví làm Operator với cọc ${fmtEth(stake)} ETH.`);
+        showToast("Thành công", `Đã kích hoạt ví làm Operator tại ${t.name} với cọc ${fmtEth(stake)} ETH.`);
     }, 800);
 }
 
@@ -581,12 +650,14 @@ function executeRecovery() {
         // isActive carries over as-is from the lost operator — which is always false here
         // (recovery requires the lost operator to already be inactive). Tenant's Operator
         // Manager still has to re-activate via HR, same as the real contract flow.
+        operator.tenantId = lost.tenantId;
         operator.stakeEth = lost.stakeEth;
         operator.isActive = false;
         operator.bio = lost.bio || null;
         operator.recoveryDelegateId = null;
         lost.recovered = true;
-        DATA.recoveryAliases.push({ currentOperatorId: DATA.currentUser.operatorId, rootAddress: operatorId, tenantName: myTenant().name, recoveredAt: TODAY, reason: 'Tự khôi phục qua ví dự phòng' });
+        const lostTenant = DATA.tenants.find(t => t.id === lost.tenantId);
+        DATA.recoveryAliases.push({ currentOperatorId: DATA.currentUser.operatorId, rootAddress: operatorId, tenantName: lostTenant.name, recoveredAt: TODAY, reason: 'Tự khôi phục qua ví dự phòng' });
         document.getElementById('recovery-action-area').classList.add('hidden');
         document.getElementById('recovery-success-area').classList.remove('hidden');
         showToast("Thành công", "Đã nhận cọc & hồ sơ. Tài khoản vẫn cần Operator Manager kích hoạt lại trước khi ký được.");
