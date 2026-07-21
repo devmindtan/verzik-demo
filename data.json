@@ -1,0 +1,129 @@
+{
+  "currentUser": {
+    "publicName": "Nguyễn Văn A",
+    "operatorId": "me"
+  },
+  "tenants": [
+    {
+      "id": "abc",
+      "name": "Công ty CP Giáo dục ABC",
+      "admin": "0xA11...GD01",
+      "operatorManager": "0xA22...TP01",
+      "treasury": "0xA33...KT01",
+      "isActive": true,
+      "minStakeEth": 3.0,
+      "unstakeCooldownHours": 24,
+      "stakeTotalEth": 65.0
+    },
+    {
+      "id": "bku",
+      "name": "Đại học Bách Khoa",
+      "admin": "0xB11...GD01",
+      "operatorManager": "0xB22...TP01",
+      "treasury": "0xB33...KT01",
+      "isActive": true,
+      "minStakeEth": 5.0,
+      "unstakeCooldownHours": 48,
+      "stakeTotalEth": 120.0
+    }
+  ],
+  "operators": [
+    { "id": "me", "tenantId": "abc", "name": "Bạn (ví đang đăng nhập)", "stakeEth": 5.0, "isActive": true, "flaggedNote": null, "recoveryDelegateId": null },
+    { "id": "tran-b", "tenantId": "abc", "name": "Giảng viên Trần B", "stakeEth": 5.0, "isActive": true, "flaggedNote": null, "recoveryDelegateId": null },
+    { "id": "le-d", "tenantId": "abc", "name": "Quản lý Lê D", "stakeEth": 10.0, "isActive": false, "flaggedNote": "Vừa nạp đủ cọc, chờ kích hoạt", "recoveryDelegateId": null },
+    { "id": "le-c", "tenantId": "abc", "name": "Giảng viên Lê C", "stakeEth": 5.0, "isActive": true, "flaggedNote": "Tình nghi gian lận", "recoveryDelegateId": null },
+    { "id": "le-f", "tenantId": "abc", "name": "Giảng viên Lê F", "stakeEth": 5.0, "isActive": false, "flaggedNote": "Mất quyền truy cập ví chính, có ví dự phòng", "recoveryDelegateId": "me" },
+    { "id": "van-g", "tenantId": "abc", "name": "Giảng viên Văn G", "stakeEth": 8.0, "isActive": false, "flaggedNote": "Mất ví, KHÔNG có ví dự phòng", "recoveryDelegateId": null }
+  ],
+  "violationPenalties": [
+    { "code": 1, "label": "Lỗi hành chính nhẹ (vd. sai ngày cấp)", "bps": 100 },
+    { "code": 2, "label": "Lỗi trung bình (vd. thiếu hồ sơ đính kèm)", "bps": 1000 },
+    { "code": 3, "label": "Lỗi nghiêm trọng (chưa tới mức tước quyền)", "bps": 5000 }
+  ],
+  "coSignPolicies": [
+    { "docType": 1, "label": "Chứng chỉ Cơ bản", "enabled": false, "minSigners": 1, "minStakeEth": 0, "requiredRoleIds": [] },
+    { "docType": 2, "label": "Chứng chỉ Chuyên gia cao cấp", "enabled": true, "minSigners": 2, "minStakeEth": 3, "requiredRoleIds": [2] }
+  ],
+  "roleCatalog": [
+    { "roleId": 1, "label": "Giảng viên chuyên môn" },
+    { "roleId": 2, "label": "QL Chuyên môn / Kiểm định chất lượng" }
+  ],
+  "coSignWhitelist": [
+    { "docType": 2, "operatorId": "tran-b", "roleId": 1 },
+    { "docType": 2, "operatorId": "me", "roleId": 2 }
+  ],
+  "documents": [
+    {
+      "id": "CERT-8899-ABCD",
+      "title": "Chứng Chỉ \"Chuyên Gia AI\"",
+      "owner": "Nguyễn Văn A",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Giảng viên Trần B",
+      "issuedAt": "21/07/2026",
+      "docType": 2,
+      "status": "valid",
+      "cid": "QmYwAPJzv5CZsnA62CkXKAoDDf5vGkfZWNAsWQd6uZ4wU9",
+      "content": {
+        "pages": [
+          { "heading": "Trang bìa", "body": "CHỨNG CHỈ HOÀN THÀNH KHOÁ HỌC\n\"Chuyên Gia AI\"\n\nCấp cho: Nguyễn Văn A\nCông ty Cổ phần Giáo dục ABC" },
+          { "heading": "Nội dung khoá học", "body": "Khoá học 120 giờ gồm: Nền tảng Machine Learning, Deep Learning ứng dụng, Triển khai mô hình production.\n\nKết quả: Đạt loại Xuất sắc (9.2/10)." },
+          { "heading": "Chữ ký & Xác thực số", "body": "Ký bởi: Giảng viên Trần B\nMã băm tài liệu (fileHash) được neo trên chuỗi, đối chiếu được với nội dung trang này để chống làm giả." }
+        ]
+      },
+      "coSign": { "trustedCount": 1, "trustedRoleIds": [1], "qualified": false }
+    },
+    {
+      "id": "CERT-1122-XYZ",
+      "title": "Văn Bằng Lập Trình Cơ Bản",
+      "owner": "Nguyễn Văn A",
+      "tenantId": "xyz",
+      "tenantName": "Trung tâm Đào tạo XYZ",
+      "issuer": "Giảng viên Đào Tạo XYZ",
+      "issuedAt": "10/05/2025",
+      "docType": 1,
+      "status": "valid",
+      "cid": "QmT5NvUtoM5nWFfrQdVrFtvGfKFmG7AHE8P34isapyhCxX",
+      "content": {
+        "pages": [
+          { "heading": "Văn bằng", "body": "VĂN BẰNG LẬP TRÌNH CƠ BẢN\n\nCấp cho: Nguyễn Văn A\nTrung tâm Đào tạo XYZ — Hoàn thành 01/05/2025" }
+        ]
+      },
+      "coSign": { "trustedCount": 1, "trustedRoleIds": [], "qualified": true }
+    },
+    {
+      "id": "VC-5501-EDU",
+      "title": "Voucher Giảm 50% Học Phí",
+      "owner": "Nguyễn Văn A",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Giảng viên Trần B",
+      "issuedAt": "02/01/2025",
+      "docType": 1,
+      "status": "revoked",
+      "revokedReason": "Phát hiện gian lận trong lúc làm bài thi.",
+      "cid": "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco",
+      "content": {
+        "pages": [
+          { "heading": "Voucher", "body": "VOUCHER GIẢM 50% HỌC PHÍ\n\nCấp cho: Nguyễn Văn A\nCông ty CP Giáo dục ABC" }
+        ]
+      },
+      "coSign": { "trustedCount": 1, "trustedRoleIds": [], "qualified": true }
+    }
+  ],
+  "recoveryAliases": [
+    { "currentOperatorId": "le-f", "rootAddress": "0xOLD...F001", "tenantName": "Công ty CP Giáo dục ABC", "recoveredAt": "15/06/2026", "reason": "Mất thiết bị cá nhân, dùng ví dự phòng tự cứu" }
+  ],
+  "explorer": {
+    "tvlEth": 245.5,
+    "totalDocuments": 15420,
+    "ranking": [
+      { "name": "Đại học Bách Khoa", "stakeEth": 120.0 },
+      { "name": "Công ty CP Giáo dục ABC", "stakeEth": 65.0 }
+    ],
+    "events": [
+      { "icon": "fa-file-signature", "color": "emerald", "text": "<span class=\"font-bold\">Công ty ABC</span> vừa phát hành chứng chỉ.", "time": "1 phút trước" },
+      { "icon": "fa-gavel", "color": "red", "text": "<span class=\"font-bold text-red-600\">Xử Phạt:</span> Giảng viên Lê C bị tịch thu <span class=\"font-bold\">5.0 ETH</span>.", "time": "12 phút trước" }
+    ]
+  }
+}
