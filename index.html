@@ -470,6 +470,11 @@
                                 <i class="fa-solid fa-money-bill-transfer w-5 text-center text-amber-500"></i><span
                                     class="text-sm font-medium">Đổi tài khoản quỹ</span>
                             </button>
+                            <button onclick="switchView('governance')" id="nav-governance"
+                                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                                <i class="fa-solid fa-user-shield w-5 text-center text-amber-500"></i><span
+                                    class="text-sm font-medium">Quản trị ghế điều hành</span>
+                            </button>
                         </nav>
                     </div>
 
@@ -966,6 +971,9 @@
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                         <h3 class="font-bold text-lg mb-4">Lịch sử của bạn</h3>
+                        <div class="mb-3"><input type="text" id="issue-revoke-reason-input"
+                                placeholder="Lý do thu hồi (áp dụng cho lần thu hồi tiếp theo)..."
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs"></div>
                         <div class="space-y-4 max-h-[32rem] overflow-y-auto pr-1" id="issue-history-list"></div>
                     </div>
                 </div>
@@ -1466,6 +1474,51 @@
                         <button onclick="changeTreasury()" id="btn-save-treasury"
                             class="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-xl font-bold transition-all shrink-0"><i
                                 class="fa-solid fa-floppy-disk"></i> Cập Nhật Treasury</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= VIEW: GOVERNANCE SEATS (TENANT) ================= -->
+            <section id="view-governance" class="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto hidden fade-in">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">Quản Trị Ghế Điều Hành</h2>
+                    <p class="text-slate-500">Chỉ Tenant Admin thực hiện được; ghế mới không được trùng 2 ghế còn lại
+                        hoặc ví Protocol Admin</p>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-8 mb-6">
+                    <div id="governance-admin-form-errors"></div>
+                    <p class="text-sm text-slate-500 mb-1">Admin hiện tại:</p>
+                    <div class="flex items-center gap-2 mb-6 font-mono font-bold text-slate-800" id="governance-admin-current">
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="relative flex-1">
+                            <input type="text" id="governance-admin-input" placeholder=" "
+                                class="peer w-full border border-slate-300 rounded-xl px-4 pt-6 pb-2 font-mono outline-none focus:border-amber-500">
+                            <label for="governance-admin-input"
+                                class="absolute left-4 top-2.5 text-xs text-slate-500 transition-all pointer-events-none peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400 peer-focus:top-2.5 peer-focus:translate-y-0 peer-focus:text-xs peer-focus:text-amber-600">Nhập
+                                địa chỉ Admin mới 0x...</label>
+                        </div>
+                        <button onclick="changeTenantAdmin()" id="btn-save-governance-admin"
+                            class="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-xl font-bold transition-all shrink-0"><i
+                                class="fa-solid fa-floppy-disk"></i> Cấp Ghế Admin</button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-8">
+                    <div id="governance-opmanager-form-errors"></div>
+                    <p class="text-sm text-slate-500 mb-1">QL Vận Hành hiện tại:</p>
+                    <div class="flex items-center gap-2 mb-6 font-mono font-bold text-slate-800" id="governance-opmanager-current">
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="relative flex-1">
+                            <input type="text" id="governance-opmanager-input" placeholder=" "
+                                class="peer w-full border border-slate-300 rounded-xl px-4 pt-6 pb-2 font-mono outline-none focus:border-amber-500">
+                            <label for="governance-opmanager-input"
+                                class="absolute left-4 top-2.5 text-xs text-slate-500 transition-all pointer-events-none peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400 peer-focus:top-2.5 peer-focus:translate-y-0 peer-focus:text-xs peer-focus:text-amber-600">Nhập
+                                địa chỉ QL Vận Hành mới 0x...</label>
+                        </div>
+                        <button onclick="changeTenantOpManager()" id="btn-save-governance-opmanager"
+                            class="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-xl font-bold transition-all shrink-0"><i
+                                class="fa-solid fa-floppy-disk"></i> Cấp Ghế QL Vận Hành</button>
                     </div>
                 </div>
             </section>

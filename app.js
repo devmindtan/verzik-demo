@@ -8,16 +8,16 @@ const roleConfig = {
     'admin': { title: '<i class="fa-solid fa-server text-purple-400"></i> Admin Nền Tảng', defaultView: 'platform' }
 };
 
-const viewIds = ['verify', 'my-docs', 'account', 'explorer', 'issue', 'cosign', 'slash', 'recovery', 'revoke', 'platform', 'stake', 'config', 'hr', 'security', 'treasury', 'emergency-recovery', 'join', 'apply-tenant'];
-const viewBgClass = { revoke: 'bg-amber-500', treasury: 'bg-amber-500', platform: 'bg-purple-600', explorer: 'bg-emerald-600', join: 'bg-emerald-600', 'apply-tenant': 'bg-purple-600', account: 'bg-sky-600' };
-const viewIconIdleClass = { revoke: 'text-amber-500', treasury: 'text-amber-500', platform: 'text-purple-500', stake: 'text-blue-400', security: 'text-indigo-400', recovery: 'text-amber-500', slash: 'text-red-400', config: 'text-emerald-400', explorer: 'text-emerald-400', 'emergency-recovery': 'text-amber-500', join: 'text-emerald-400', 'apply-tenant': 'text-purple-400', account: 'text-sky-400' };
+const viewIds = ['verify', 'my-docs', 'account', 'explorer', 'issue', 'cosign', 'slash', 'recovery', 'revoke', 'platform', 'stake', 'config', 'hr', 'security', 'treasury', 'governance', 'emergency-recovery', 'join', 'apply-tenant'];
+const viewBgClass = { revoke: 'bg-amber-500', treasury: 'bg-amber-500', governance: 'bg-amber-500', platform: 'bg-purple-600', explorer: 'bg-emerald-600', join: 'bg-emerald-600', 'apply-tenant': 'bg-purple-600', account: 'bg-sky-600' };
+const viewIconIdleClass = { revoke: 'text-amber-500', treasury: 'text-amber-500', governance: 'text-amber-500', platform: 'text-purple-500', stake: 'text-blue-400', security: 'text-indigo-400', recovery: 'text-amber-500', slash: 'text-red-400', config: 'text-emerald-400', explorer: 'text-emerald-400', 'emergency-recovery': 'text-amber-500', join: 'text-emerald-400', 'apply-tenant': 'text-purple-400', account: 'text-sky-400' };
 
 const renderers = {
     'my-docs': renderMyDocs, account: renderAccount, verify: resetVerify, explorer: renderExplorer, issue: renderIssue,
     cosign: renderCosign, stake: renderStake, security: renderSecurity, recovery: renderRecovery,
     join: renderJoin, 'apply-tenant': renderApplyTenant,
     hr: renderHr, slash: renderSlash, config: renderConfig, revoke: renderRevoke,
-    platform: renderPlatform, treasury: renderTreasury, 'emergency-recovery': renderEmergencyRecovery
+    platform: renderPlatform, treasury: renderTreasury, governance: renderGovernance, 'emergency-recovery': renderEmergencyRecovery
 };
 
 // Reading public chain data never needs a wallet. Everything else — even just seeing
@@ -809,8 +809,44 @@ function renderIssue() {
         `<option value="${p.docType}">${p.label}${p.enabled ? ` (Cần ${p.minSigners} chữ ký tin cậy)` : ' (Không cần đồng ký)'}</option>`).join('');
 
     const myDocs = DATA.documents.filter(d => d.tenantId === me().tenantId);
-    document.getElementById('issue-history-list').innerHTML = !myDocs.length ? emptyStateHtml('fa-inbox', 'Chưa có chứng từ nào được phát hành.') : myDocs.map(d =>
-        `<div class="p-3 border border-slate-100 rounded-lg bg-slate-50"><p class="font-semibold text-sm">${d.id}</p><p class="text-xs text-slate-500">${escapeHtml(d.owner)}</p></div>`).join('');
+    // Revoke button only for documents THIS operator personally issued and that are still valid —
+    // matches DocumentLib.revokeDocument, which authorizes the Tenant Admin OR msg.sender == doc.issuer.
+    document.getElementById('issue-history-list').innerHTML = !myDocs.length ? emptyStateHtml('fa-inbox', 'Chưa có chứng từ nào được phát hành.') : myDocs.map(d => `
+        <div class="p-3 border border-slate-100 rounded-lg ${d.status === 'revoked' ? 'bg-red-50' : 'bg-slate-50'}" id="issue-doc-${d.id}">
+            <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                    <p class="font-semibold text-sm ${d.status === 'revoked' ? 'line-through text-slate-400' : ''}">${d.id}</p>
+                    <p class="text-xs text-slate-500">${escapeHtml(d.owner)}</p>
+                </div>
+                ${d.status === 'valid' && d.issuer === me().name
+                    ? `<button onclick="confirmRevokeOwn('${d.id}')" class="shrink-0 text-xs text-red-600 hover:bg-red-50 border border-red-200 px-2 py-1 rounded-lg transition-colors"><i class="fa-solid fa-ban"></i> Thu hồi</button>`
+                    : d.status === 'revoked' ? `<span class="shrink-0 text-xs font-bold text-slate-400 uppercase">Đã thu hồi</span>` : ''}
+            </div>
+        </div>`).join('');
+}
+
+function confirmRevokeOwn(docId) {
+    const doc = DATA.documents.find(d => d.id === docId);
+    askConfirm(
+        "Xác nhận thu hồi chứng chỉ do bạn phát hành",
+        `Chứng chỉ "${doc.id}" của ${doc.owner} sẽ vĩnh viễn mất hiệu lực và không thể khôi phục.`,
+        () => executeRevokeOwn(docId),
+        "Xác nhận thu hồi",
+        doc.id
+    );
+}
+
+function executeRevokeOwn(docId) {
+    const reason = document.getElementById('issue-revoke-reason-input').value.trim() || 'Không nêu lý do cụ thể.';
+    const btn = document.querySelector(`#issue-doc-${docId} button`);
+    if (btn) btn.outerHTML = `<div class="loader border-red-600 border-top-transparent h-4 w-4 shrink-0"></div>`;
+    setTimeout(() => {
+        const doc = DATA.documents.find(d => d.id === docId);
+        doc.status = 'revoked';
+        doc.revokedReason = reason;
+        renderIssue();
+        showToast("Đã thu hồi", "Hủy tính pháp lý.", "amber");
+    }, 800);
 }
 
 function handleIssue() {
@@ -1647,6 +1683,19 @@ function rejectApplication(btn, appId) {
     }, 500);
 }
 
+// Shared by Treasury/Admin/OpManager seat changes — mirrors the contract's cross-seat conflict
+// checks (VoucherProtocolHelper._enforceTenantRoleSegregationOnGrant / OperatorLib.setTreasury):
+// a tenant's 3 governance seats must stay 3 distinct addresses, and none of them may be the
+// Protocol Admin wallet (ProtocolAdminCannotHaveOtherRoles).
+function tenantSeatConflict(val, t, seatLabel) {
+    if (!val) return `Nhập địa chỉ ${seatLabel} mới.`;
+    if (val === DATA.protocolAdminAddress) return 'Không được dùng ví Protocol Admin.';
+    if (val === t.admin) return 'Trùng địa chỉ Admin hiện tại.';
+    if (val === t.operatorManager) return 'Trùng địa chỉ QL Vận hành hiện tại.';
+    if (val === t.treasury) return 'Trùng địa chỉ Treasury hiện tại.';
+    return null;
+}
+
 // ================= TREASURY (tenant) =================
 function renderTreasury() {
     const t = myTenant();
@@ -1662,9 +1711,7 @@ function changeTreasury() {
     const t = myTenant();
     const input = document.getElementById('treasury-input');
     const val = input.value.trim();
-    let error = null;
-    if (!val) error = 'Nhập địa chỉ ví quỹ mới.';
-    else if (val === t.admin || val === t.operatorManager) error = 'Treasury không được trùng Admin hoặc QL Vận hành.';
+    const error = tenantSeatConflict(val, t, 'ví quỹ');
     if (error) { setFieldError('treasury-input'); showFormError('treasury-form-errors', [error]); showToast("Lỗi", error, "red"); return; }
     const btn = document.getElementById('btn-save-treasury');
     btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div>`;
@@ -1673,6 +1720,53 @@ function changeTreasury() {
         btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Cập Nhật Treasury`;
         renderTreasury();
         showToast("Thành công", "Đã đổi tài khoản quỹ.");
+    }, 800);
+}
+
+// ================= GOVERNANCE SEATS (tenant admin only — mirrors VoucherProtocol.grantRole,
+// which only the Admin role can call to (re)assign the Admin or Operator Manager seat) =================
+function renderGovernance() {
+    const t = myTenant();
+    document.getElementById('governance-admin-current').innerHTML = `<span>${escapeHtml(t.admin)}</span>${copyBtnHtml(t.admin)}`;
+    document.getElementById('governance-opmanager-current').innerHTML = `<span>${escapeHtml(t.operatorManager)}</span>${copyBtnHtml(t.operatorManager)}`;
+    document.getElementById('governance-admin-input').value = '';
+    document.getElementById('governance-opmanager-input').value = '';
+    clearFieldErrors(['governance-admin-input', 'governance-opmanager-input']);
+    showFormError('governance-admin-form-errors', []);
+    showFormError('governance-opmanager-form-errors', []);
+}
+
+function changeTenantAdmin() {
+    clearFieldErrors(['governance-admin-input']);
+    showFormError('governance-admin-form-errors', []);
+    const t = myTenant();
+    const val = document.getElementById('governance-admin-input').value.trim();
+    const error = tenantSeatConflict(val, t, 'Admin');
+    if (error) { setFieldError('governance-admin-input'); showFormError('governance-admin-form-errors', [error]); showToast("Lỗi", error, "red"); return; }
+    const btn = document.getElementById('btn-save-governance-admin');
+    btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div>`;
+    setTimeout(() => {
+        t.admin = val;
+        btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Cấp Ghế Admin`;
+        renderGovernance();
+        showToast("Thành công", "Đã cấp ghế Admin cho ví mới.");
+    }, 800);
+}
+
+function changeTenantOpManager() {
+    clearFieldErrors(['governance-opmanager-input']);
+    showFormError('governance-opmanager-form-errors', []);
+    const t = myTenant();
+    const val = document.getElementById('governance-opmanager-input').value.trim();
+    const error = tenantSeatConflict(val, t, 'QL Vận Hành');
+    if (error) { setFieldError('governance-opmanager-input'); showFormError('governance-opmanager-form-errors', [error]); showToast("Lỗi", error, "red"); return; }
+    const btn = document.getElementById('btn-save-governance-opmanager');
+    btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div>`;
+    setTimeout(() => {
+        t.operatorManager = val;
+        btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Cấp Ghế QL Vận Hành`;
+        renderGovernance();
+        showToast("Thành công", "Đã cấp ghế QL Vận Hành cho ví mới.");
     }, 800);
 }
 
