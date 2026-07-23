@@ -405,6 +405,8 @@ function showToast(title, message, color = "emerald") {
     const dismiss = () => { el.classList.add('opacity-0', 'translate-y-2'); setTimeout(() => el.remove(), 300); };
     el.querySelector('button').onclick = dismiss;
     setTimeout(dismiss, 3000);
+    // Cap stacked toasts so a burst of rapid actions can't fill the whole screen.
+    while (container.children.length > 4) container.firstElementChild.remove();
 }
 
 function copyText(text) {
@@ -670,9 +672,10 @@ function renderAccountActivity(op) {
             text: `Khôi phục ví thành công tại ${a.tenantName} (${a.reason}).`
         }));
     }
-    document.getElementById('account-activity-list').innerHTML = events.map(e =>
+    const { rows: shown, loadMoreDiv } = applyListControls(events, 'account-activity', `renderAccountActivity(me())`, {});
+    document.getElementById('account-activity-list').innerHTML = shown.map(e =>
         `<div class="flex gap-4"><div class="w-8 h-8 rounded-full bg-${e.color}-100 text-${e.color}-600 flex items-center justify-center shrink-0"><i class="fa-solid ${e.icon} text-xs"></i></div><div><p class="text-sm font-medium text-slate-700">${e.text}</p><p class="text-xs text-slate-400 mt-1">${e.time}</p></div></div>`
-    ).join('');
+    ).join('') + loadMoreDiv;
     document.getElementById('account-activity-empty').classList.toggle('hidden', events.length > 0);
 }
 
@@ -751,10 +754,11 @@ function renderExplorer() {
     document.getElementById('explorer-tenant-count').innerText = `${DATA.tenants.filter(t => t.isActive).length} Active`;
     document.getElementById('explorer-doc-count').innerText = ex.totalDocuments.toLocaleString('vi-VN');
 
-    document.getElementById('explorer-ranking').innerHTML = ex.ranking.map((r, i) => `
+    // Capped to top N so the card can't grow past the layout as demo data accumulates over time.
+    document.getElementById('explorer-ranking').innerHTML = ex.ranking.slice(0, 8).map((r, i) => `
         <div class="flex items-center justify-between gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-8 h-8 font-bold text-slate-400 bg-slate-50 rounded flex items-center justify-center shrink-0">#${i + 1}</div><div class="min-w-0"><p class="font-bold text-slate-700 text-sm truncate" title="${r.name}">${r.name}</p></div></div><div class="text-right shrink-0"><p class="font-bold text-blue-600 text-sm">${fmtEth(r.stakeEth)} ETH</p></div></div>`).join('');
 
-    document.getElementById('explorer-events').innerHTML = ex.events.map(e => `
+    document.getElementById('explorer-events').innerHTML = ex.events.slice(0, 8).map(e => `
         <div class="flex gap-4"><div class="w-8 h-8 rounded-full bg-${e.color}-100 text-${e.color}-600 flex items-center justify-center shrink-0"><i class="fa-solid ${e.icon} text-xs"></i></div><div><p class="text-sm font-medium text-slate-700">${e.text}</p><p class="text-xs text-slate-400 mt-1">${e.time}</p></div></div>`).join('');
 
     document.getElementById('explorer-tenant-table').innerHTML = DATA.tenants.map(t => `
@@ -1507,9 +1511,15 @@ function renderRevokePending(docId) {
 function renderPlatform() {
     clearFieldErrors(['new-tenant-id', 'new-tenant-name', 'new-tenant-admin', 'new-tenant-opmanager', 'new-tenant-treasury', 'new-tenant-minstake', 'new-tenant-cooldown']);
     showFormError('platform-form-errors', []);
-    const apps = DATA.tenantApplications;
-    document.getElementById('tenant-applications-list').innerHTML = apps.length
-        ? apps.map(a => `
+    if (!DATA.tenantApplications.length) {
+        document.getElementById('tenant-applications-list').innerHTML = `<div class="p-8 text-center text-slate-400 text-sm">Không có yêu cầu nào đang chờ.</div>`;
+    } else {
+        const { rows: apps, total, loadMoreDiv } = applyListControls(DATA.tenantApplications, 'tenant-applications', 'renderPlatform()', {
+            searchId: 'tenant-applications-search', searchFn: (a, q) => a.name.toLowerCase().includes(q)
+        });
+        document.getElementById('tenant-applications-list').innerHTML = (!total
+            ? `<div class="p-8 text-center text-slate-400 text-sm">Không tìm thấy yêu cầu phù hợp.</div>`
+            : apps.map(a => `
             <div class="p-6 border-b border-slate-100 flex items-start justify-between gap-4">
                 <div>
                     <p class="font-bold text-slate-800">${a.name}</p>
@@ -1521,8 +1531,8 @@ function renderPlatform() {
                     <button onclick="approveApplication(this, '${a.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-check"></i> Duyệt</button>
                     <button onclick="rejectApplication(this, '${a.id}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg text-sm font-bold">Từ chối</button>
                 </div>
-            </div>`).join('')
-        : `<div class="p-8 text-center text-slate-400 text-sm">Không có yêu cầu nào đang chờ.</div>`;
+            </div>`).join('')) + loadMoreDiv;
+    }
 
     document.getElementById('tenant-table-body').innerHTML = DATA.tenants.map(t => `
         <tr class="border-b border-slate-100 ${t.isActive ? '' : 'bg-red-50'}">
@@ -1655,20 +1665,23 @@ function changeTreasury() {
 
 // ================= EMERGENCY RECOVERY BY ADMIN (tenant) =================
 function renderEmergencyRecovery() {
-    const stranded = DATA.operators.filter(o => o.tenantId === myTenant().id && !o.isActive && !o.recoveryDelegateId && !o.recovered);
+    const allStranded = DATA.operators.filter(o => o.tenantId === myTenant().id && !o.isActive && !o.recoveryDelegateId && !o.recovered);
     const container = document.getElementById('emergency-recovery-list');
-    if (stranded.length === 0) {
+    if (allStranded.length === 0) {
         container.innerHTML = `<div class="p-12 text-center text-slate-400">Không có nhân viên nào cần khôi phục khẩn cấp.</div>`;
         return;
     }
-    container.innerHTML = stranded.map(op => `
+    const { rows: stranded, total, loadMoreDiv } = applyListControls(allStranded, 'emergency-recovery', 'renderEmergencyRecovery()', {
+        searchId: 'emergency-recovery-search', searchFn: (o, q) => o.name.toLowerCase().includes(q)
+    });
+    container.innerHTML = (!total ? `<div class="p-12 text-center text-slate-400">Không tìm thấy nhân viên phù hợp.</div>` : stranded.map(op => `
         <div class="p-6 border-b border-slate-100 flex items-center justify-between gap-4">
             <div class="min-w-0"><p class="font-bold text-slate-800 break-words">${op.name}</p><p class="text-xs text-red-500 break-words">${op.flaggedNote || ''} — ${fmtEth(op.stakeEth)} ETH</p></div>
             <div class="flex gap-2">
                 <input type="text" placeholder="Địa chỉ ví mới 0x..." class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
                 <button onclick="recoverByAdmin(this, '${op.id}')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-bold">Chỉ định ví mới</button>
             </div>
-        </div>`).join('');
+        </div>`).join('')) + loadMoreDiv;
 }
 
 function recoverByAdmin(btn, operatorId) {

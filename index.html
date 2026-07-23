@@ -906,9 +906,9 @@
                             oninput="listLimits['explorer-operator']=10;debounce('explorer-operator', () => renderExplorerOperators(document.getElementById('explorer-operator-tenant-select').value))"
                             placeholder="Tìm theo tên nhân viên..."
                             class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none mb-3">
-                        <div class="table-scroll">
+                        <div class="table-scroll max-h-[28rem] overflow-y-auto">
                             <table class="w-full text-left border-collapse">
-                                <thead class="bg-slate-50 border-b border-slate-200">
+                                <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                                     <tr class="text-xs uppercase text-slate-500">
                                         <th class="p-3">Nhân viên</th>
                                         <th class="p-3">Stake</th>
@@ -966,7 +966,7 @@
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                         <h3 class="font-bold text-lg mb-4">Lịch sử của bạn</h3>
-                        <div class="space-y-4" id="issue-history-list"></div>
+                        <div class="space-y-4 max-h-[32rem] overflow-y-auto pr-1" id="issue-history-list"></div>
                     </div>
                 </div>
             </section>
@@ -983,9 +983,9 @@
                             placeholder="Tìm theo mã chứng chỉ hoặc người nhận..."
                             class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none">
                     </div>
-                    <div class="table-scroll">
+                    <div class="table-scroll max-h-[28rem] overflow-y-auto">
                         <table class="w-full text-left border-collapse">
-                            <thead class="bg-slate-50 border-b border-slate-200">
+                            <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                                 <tr class="text-xs uppercase text-slate-500">
                                     <th class="p-4">Mã Chứng Chỉ</th>
                                     <th class="p-4">Thông tin</th>
@@ -1217,9 +1217,9 @@
                             <option value="status">Trạng thái</option>
                         </select>
                     </div>
-                    <div class="table-scroll">
+                    <div class="table-scroll max-h-[28rem] overflow-y-auto">
                         <table class="w-full text-left border-collapse">
-                            <thead class="bg-slate-50 border-b border-slate-200">
+                            <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                                 <tr class="text-xs uppercase text-slate-500">
                                     <th class="p-4">Nhân viên</th>
                                     <th class="p-4">Stake</th>
@@ -1251,9 +1251,9 @@
                             <option value="stake">Stake (cao → thấp)</option>
                         </select>
                     </div>
-                    <div class="table-scroll">
+                    <div class="table-scroll max-h-[28rem] overflow-y-auto">
                         <table class="w-full text-left border-collapse">
-                            <thead class="bg-slate-50 border-b border-slate-200">
+                            <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                                 <tr class="text-xs uppercase text-slate-500">
                                     <th class="p-4">Nhân viên</th>
                                     <th class="p-4">Tiền Cọc</th>
@@ -1359,9 +1359,9 @@
                             oninput="listLimits['whitelist']=10;debounce('whitelist', renderWhitelistTable)"
                             placeholder="Tìm theo tên nhân viên..."
                             class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none mb-3">
-                        <div class="table-scroll">
+                        <div class="table-scroll max-h-[28rem] overflow-y-auto">
                             <table class="w-full text-left border-collapse">
-                                <thead class="bg-slate-50 border-b border-slate-200">
+                                <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                                     <tr class="text-xs uppercase text-slate-500">
                                         <th class="p-3">Nhân viên</th>
                                         <th class="p-3 text-center">Whitelist</th>
@@ -1429,9 +1429,9 @@
                             <option value="status">Trạng thái</option>
                         </select>
                     </div>
-                    <div class="table-scroll">
+                    <div class="table-scroll max-h-[28rem] overflow-y-auto">
                         <table class="w-full text-left border-collapse">
-                            <thead class="bg-slate-50 border-b border-slate-200">
+                            <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                                 <tr class="text-xs uppercase text-slate-500">
                                     <th class="p-4">Mã Chứng Chỉ</th>
                                     <th class="p-4">Trạng thái</th>
@@ -1476,8 +1476,13 @@
                     <h2 class="text-2xl font-bold text-slate-800">Khôi Phục Hộ Nhân Viên (Lưới An Toàn Cuối)</h2>
                     <p class="text-slate-500">Dành cho nhân viên mất ví nhưng chưa từng cấu hình ví dự phòng</p>
                 </div>
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
-                    id="emergency-recovery-list"></div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100"><input type="text" id="emergency-recovery-search"
+                            oninput="listLimits['emergency-recovery']=10;debounce('emergency-recovery', renderEmergencyRecovery)"
+                            placeholder="Tìm theo tên nhân viên..."
+                            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></div>
+                    <div id="emergency-recovery-list"></div>
+                </div>
             </section>
 
             <!-- ================= VIEW: PLATFORM (ADMIN) ================= -->
@@ -1497,6 +1502,10 @@
                 <div class="bg-white rounded-2xl shadow-sm border border-amber-200 overflow-hidden mb-6">
                     <h3 class="font-bold text-slate-800 p-6 pb-3 flex items-center gap-2"><i
                             class="fa-solid fa-inbox text-amber-500"></i> Yêu Cầu Đăng Ký Đang Chờ Duyệt</h3>
+                    <div class="px-6 pb-3"><input type="text" id="tenant-applications-search"
+                            oninput="listLimits['tenant-applications']=10;debounce('tenant-applications', renderPlatform)"
+                            placeholder="Tìm theo tên tổ chức..."
+                            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></div>
                     <div id="tenant-applications-list"></div>
                 </div>
 
