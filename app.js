@@ -206,6 +206,20 @@ function ipfsNextPage() {
     if (doc && ipfsViewerPage < doc.content.pages.length - 1) { ipfsViewerPage += 1; renderIpfsViewer(); }
 }
 
+// Arrow keys page through the open IPFS viewer; Escape closes whichever modal is open.
+document.addEventListener('keydown', e => {
+    if (ipfsViewerDocId !== null && !document.getElementById('ipfs-viewer-modal').classList.contains('hidden')) {
+        if (e.key === 'ArrowLeft') { e.preventDefault(); ipfsPrevPage(); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); ipfsNextPage(); }
+        else if (e.key === 'Escape') { closeIpfsViewer(); }
+        return;
+    }
+    if (e.key === 'Escape') {
+        if (!document.getElementById('confirm-modal').classList.contains('hidden')) closeConfirmModal();
+        else if (!document.getElementById('connect-gate').classList.contains('hidden')) closeConnectModal();
+    }
+});
+
 let currentRoleId = 'public';
 
 function switchRole(roleId) {
@@ -363,14 +377,14 @@ function copyText(text) {
 }
 
 function copyBtnHtml(text) {
-    return `<button type="button" onclick="event.stopPropagation();copyText('${text}')" class="text-slate-400 hover:text-blue-600" title="Sao chép địa chỉ"><i class="fa-regular fa-copy text-xs"></i></button>`;
+    return `<button type="button" onclick="event.stopPropagation();copyText('${text}')" class="text-slate-400 hover:text-blue-600" title="Sao chép địa chỉ" aria-label="Sao chép địa chỉ ${text}"><i class="fa-regular fa-copy text-xs"></i></button>`;
 }
 
 function toggleMenu(id) { document.getElementById(id).classList.toggle('hidden'); }
 
 // ================= SHARED: EMPTY-STATE, FIELD ERRORS, CONFIRM MODAL =================
-function emptyStateHtml(icon, text, extraClass = '') {
-    return `<div class="${extraClass} py-10 text-center text-slate-400"><i class="fa-solid ${icon} text-3xl text-slate-300 mb-3"></i><p class="text-sm">${text}</p></div>`;
+function emptyStateHtml(icon, text, extraClass = '', ctaHtml = '') {
+    return `<div class="${extraClass} py-10 text-center text-slate-400"><i class="fa-solid ${icon} text-3xl text-slate-300 mb-3"></i><p class="text-sm">${text}</p>${ctaHtml ? `<div class="mt-3">${ctaHtml}</div>` : ''}</div>`;
 }
 function emptyStateRow(colspan, icon, text) {
     return `<tr><td colspan="${colspan}">${emptyStateHtml(icon, text)}</td></tr>`;
@@ -378,6 +392,13 @@ function emptyStateRow(colspan, icon, text) {
 
 // ================= LIST CONTROLS: search + sort + "load more", shared by data tables that can grow large =================
 const listLimits = {};
+// Search inputs call this instead of re-rendering on every keystroke directly — keeps typing
+// smooth once a table has enough rows that a full innerHTML rebuild is noticeable.
+const debounceTimers = {};
+function debounce(key, fn, wait = 280) {
+    clearTimeout(debounceTimers[key]);
+    debounceTimers[key] = setTimeout(fn, wait);
+}
 function listLimit(key) { return listLimits[key] || 10; }
 
 // rows: full array. opts.searchId/searchFn: static <input> id + (row, query) => bool.
@@ -424,22 +445,50 @@ function showFormError(containerId, messages) {
 }
 
 let confirmModalCallback = null;
-function askConfirm(title, message, onConfirm, acceptLabel = 'Xác nhận') {
+let confirmModalRequireText = null;
+// requireText: when set, the Accept button stays disabled until the user retypes it exactly —
+// extra friction reserved for the single most irreversible action (hard-slash: 100% of stake,
+// gone instantly, no undo). Soft-slash/revoke/unstake keep the lighter one-click confirm.
+function askConfirm(title, message, onConfirm, acceptLabel = 'Xác nhận', requireText = null) {
     document.getElementById('confirm-modal-title').innerText = title;
     document.getElementById('confirm-modal-message').innerText = message;
     document.getElementById('confirm-modal-accept').innerText = acceptLabel;
     confirmModalCallback = onConfirm;
+    confirmModalRequireText = requireText;
+    const typeArea = document.getElementById('confirm-modal-type-area');
+    const acceptBtn = document.getElementById('confirm-modal-accept');
+    typeArea.classList.toggle('hidden', !requireText);
+    if (requireText) {
+        document.getElementById('confirm-modal-type-target').innerText = requireText;
+        document.getElementById('confirm-modal-type-input').value = '';
+        acceptBtn.disabled = true;
+        acceptBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    } else {
+        acceptBtn.disabled = false;
+        acceptBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
     const modal = document.getElementById('confirm-modal');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+    if (requireText) document.getElementById('confirm-modal-type-input').focus();
+}
+function checkConfirmTypedMatch() {
+    const acceptBtn = document.getElementById('confirm-modal-accept');
+    const typed = document.getElementById('confirm-modal-type-input').value.trim();
+    const matches = confirmModalRequireText && typed === confirmModalRequireText;
+    acceptBtn.disabled = !matches;
+    acceptBtn.classList.toggle('opacity-50', !matches);
+    acceptBtn.classList.toggle('cursor-not-allowed', !matches);
 }
 function closeConfirmModal() {
     const modal = document.getElementById('confirm-modal');
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     confirmModalCallback = null;
+    confirmModalRequireText = null;
 }
 function confirmModalAccept() {
+    if (document.getElementById('confirm-modal-accept').disabled) return;
     const cb = confirmModalCallback;
     closeConfirmModal();
     cb?.();
@@ -455,7 +504,8 @@ function renderMyDocs() {
     document.getElementById('stat-valid').innerText = docs.filter(d => d.status === 'valid').length;
     document.getElementById('stat-revoked').innerText = docs.filter(d => d.status === 'revoked').length;
 
-    document.getElementById('my-docs-cards').innerHTML = !docs.length ? emptyStateHtml('fa-wallet', 'Bạn chưa sở hữu chứng từ nào.', 'sm:col-span-2') : docs.map(d => {
+    document.getElementById('my-docs-cards').innerHTML = !docs.length ? emptyStateHtml('fa-wallet', 'Bạn chưa sở hữu chứng từ nào.', 'sm:col-span-2',
+        `<button onclick="switchView('explorer')" class="text-sm font-semibold text-blue-600 hover:underline">Khám phá Sổ Cái Công Khai →</button>`) : docs.map(d => {
         const valid = d.status === 'valid';
         const policy = policyFor(d.docType);
         const required = policy && policy.enabled ? policy.minSigners : 1;
@@ -467,22 +517,19 @@ function renderMyDocs() {
                 ${valid ? `<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><i class="fa-solid fa-check-circle"></i> HỢP LỆ</span>`
                         : `<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><i class="fa-solid fa-ban"></i> ĐÃ THU HỒI</span>`}
             </div>
-            <h3 class="text-xl font-bold ${valid ? 'text-slate-800' : 'text-slate-500 line-through'} mb-1">${d.title}</h3>
+            <h3 class="text-xl font-bold break-words ${valid ? 'text-slate-800' : 'text-slate-500 line-through'} mb-1">${d.title}</h3>
             <p class="text-sm text-slate-500 mb-4 flex-1">Phát hành bởi: ${d.tenantName}</p>
-            ${valid ? `<div class="bg-slate-50 rounded-lg p-3 text-xs mb-4 border border-slate-100">
+            <div class="bg-slate-50 rounded-lg p-3 text-xs mb-4 border border-slate-100">
                 <div class="flex justify-between mb-1"><span class="text-slate-500">Mã chứng chỉ:</span><span class="font-mono font-medium text-slate-700">${d.id}</span></div>
                 <div class="flex justify-between mb-1"><span class="text-slate-500">Ngày cấp:</span><span class="font-medium text-slate-700">${d.issuedAt}</span></div>
-                <div class="flex justify-between items-center"><span class="text-slate-500">Độ tin cậy:</span><span class="font-bold text-blue-600 flex items-center gap-1"><i class="fa-solid fa-award"></i> ${trust}</span></div>
+                ${valid
+                    ? `<div class="flex justify-between items-center"><span class="text-slate-500">Độ tin cậy:</span><span class="font-bold text-blue-600 flex items-center gap-1"><i class="fa-solid fa-award"></i> ${trust}</span></div>`
+                    : `<div class="flex justify-between items-start gap-2"><span class="text-slate-500 shrink-0">Lý do thu hồi:</span><span class="font-medium text-red-600 text-right break-words">${d.revokedReason}</span></div>`}
             </div>
             <div class="flex gap-2">
-            <button onclick="switchRole('public');switchView('verify');document.getElementById('search-input').value='${d.id}';handleSearch()" class="flex-1 text-center text-blue-600 font-semibold hover:bg-blue-50 py-2 rounded-lg transition-colors border border-blue-100 text-sm">Xem chi tiết trên chuỗi</button>
+            <button onclick="switchRole('public');switchView('verify');document.getElementById('search-input').value='${d.id}';handleSearch()" class="flex-1 text-center font-semibold py-2 rounded-lg transition-colors border text-sm ${valid ? 'text-blue-600 hover:bg-blue-50 border-blue-100' : 'text-slate-500 hover:bg-slate-200 border-slate-200'}">Xem chi tiết trên chuỗi</button>
             ${d.content ? `<button onclick="openIpfsViewer('${d.id}')" class="flex-1 text-center text-slate-600 font-semibold hover:bg-slate-50 py-2 rounded-lg transition-colors border border-slate-200 text-sm"><i class="fa-solid fa-file-lines"></i> Nội dung IPFS</button>` : ''}
-            </div>`
-            : `<p class="text-xs text-red-600 font-medium mb-4 bg-red-50 p-2 rounded border border-red-100">Lý do: ${d.revokedReason}</p>
-            <div class="flex gap-2">
-            <button class="flex-1 text-center text-slate-500 font-semibold hover:bg-slate-200 py-2 rounded-lg transition-colors border border-slate-200 text-sm">Lịch sử giao dịch</button>
-            ${d.content ? `<button onclick="openIpfsViewer('${d.id}')" class="flex-1 text-center text-slate-600 font-semibold hover:bg-slate-50 py-2 rounded-lg transition-colors border border-slate-200 text-sm"><i class="fa-solid fa-file-lines"></i> Nội dung IPFS</button>` : ''}
-            </div>`}
+            </div>
         </div>`;
     }).join('');
 }
@@ -493,25 +540,26 @@ function renderAccount() {
     switchAccountTab('overview');
     document.getElementById('account-name').innerText = connectedWallet.label;
     document.getElementById('account-address').innerText = connectedWallet.address;
+    document.getElementById('account-address').title = connectedWallet.address;
     renderAccountAvatar(connectedWallet.label);
 
     const governance = DATA.tenants.filter(t => [t.admin, t.operatorManager, t.treasury].includes(connectedWallet.address));
     const badge = document.getElementById('account-role-badge');
     if (isProtocolAdminWallet()) {
         badge.innerText = 'Protocol Admin';
-        badge.className = 'text-xs font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700';
+        badge.className = 'text-xs font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap bg-purple-100 text-purple-700';
     } else if (governance.length) {
         badge.innerText = 'Quản trị doanh nghiệp';
-        badge.className = 'text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700';
+        badge.className = 'text-xs font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap bg-amber-100 text-amber-700';
     } else if (op?.isActive) {
         badge.innerText = 'Operator đang hoạt động';
-        badge.className = 'text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700';
+        badge.className = 'text-xs font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap bg-blue-100 text-blue-700';
     } else if (op) {
         badge.innerText = 'Operator tạm ngưng';
-        badge.className = 'text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500';
+        badge.className = 'text-xs font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap bg-slate-100 text-slate-500';
     } else {
         badge.innerText = 'Khách';
-        badge.className = 'text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500';
+        badge.className = 'text-xs font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap bg-slate-100 text-slate-500';
     }
 
     document.getElementById('account-operator-status').innerHTML = !op
@@ -666,7 +714,7 @@ function renderExplorer() {
         <div class="flex gap-4"><div class="w-8 h-8 rounded-full bg-${e.color}-100 text-${e.color}-600 flex items-center justify-center shrink-0"><i class="fa-solid ${e.icon} text-xs"></i></div><div><p class="text-sm font-medium text-slate-700">${e.text}</p><p class="text-xs text-slate-400 mt-1">${e.time}</p></div></div>`).join('');
 
     document.getElementById('explorer-tenant-table').innerHTML = DATA.tenants.map(t => `
-        <tr class="border-b border-slate-100"><td class="p-3 font-medium text-sm">${t.name}</td><td class="p-3 text-sm font-bold text-blue-600">${fmtEth(t.stakeTotalEth)} ETH</td><td class="p-3">${t.isActive ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">ACTIVE</span>' : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">SUSPENDED</span>'}</td></tr>`).join('');
+        <tr class="border-b border-slate-100"><td class="p-3 font-medium text-sm break-words">${t.name}</td><td class="p-3 text-sm font-bold text-blue-600">${fmtEth(t.stakeTotalEth)} ETH</td><td class="p-3">${t.isActive ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">ACTIVE</span>' : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">SUSPENDED</span>'}</td></tr>`).join('');
 
     const tenantSelect = document.getElementById('explorer-operator-tenant-select');
     const prevSelection = tenantSelect.value || myTenant().id;
@@ -683,7 +731,7 @@ function renderExplorerOperators(tenantId) {
     document.getElementById('explorer-operator-table').innerHTML = (!total
         ? `<tr><td colspan="3" class="p-6 text-center text-slate-400 text-sm">Không tìm thấy nhân sự phù hợp.</td></tr>`
         : rows.map(op => `
-            <tr class="border-b border-slate-100"><td class="p-3 text-sm font-medium">${op.name}</td><td class="p-3 text-sm font-bold text-blue-600">${fmtEth(op.stakeEth)} ETH</td><td class="p-3">${op.isActive ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">HOẠT ĐỘNG</span>' : '<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-xs font-bold">NGƯNG</span>'}</td></tr>`).join('')) + loadMoreRow;
+            <tr class="border-b border-slate-100"><td class="p-3 text-sm font-medium break-words">${op.name}</td><td class="p-3 text-sm font-bold text-blue-600">${fmtEth(op.stakeEth)} ETH</td><td class="p-3">${op.isActive ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">HOẠT ĐỘNG</span>' : '<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-xs font-bold">NGƯNG</span>'}</td></tr>`).join('')) + loadMoreRow;
 }
 
 function lookupRecoveryAlias() {
@@ -872,7 +920,12 @@ function renderSecurity() {
     renderDelegateOptions(delegateCandidates);
 }
 
+let delegateVisibleList = [];
+let delegateActiveIndex = -1;
+
 function renderDelegateOptions(list) {
+    delegateVisibleList = list;
+    delegateActiveIndex = -1;
     const box = document.getElementById('delegate-options');
     box.innerHTML = list.length ? list.map(o =>
         `<button type="button" onclick="selectDelegate('${o.id}')" class="w-full text-left px-3 py-2 hover:bg-slate-100 text-sm flex justify-between items-center gap-2 border-b border-slate-50 last:border-0"><span class="font-medium text-slate-700 truncate min-w-0">${o.name}</span><span class="text-slate-400 font-mono text-xs shrink-0">${o.address}</span></button>`
@@ -896,6 +949,32 @@ function selectDelegate(id) {
     document.getElementById('delegate-input').value = id;
     document.getElementById('delegate-search-input').value = op.name;
     document.getElementById('delegate-options').classList.add('hidden');
+}
+
+function highlightDelegateOption(index) {
+    const buttons = document.querySelectorAll('#delegate-options button');
+    buttons.forEach(b => b.classList.remove('bg-slate-100'));
+    if (index >= 0 && buttons[index]) { buttons[index].classList.add('bg-slate-100'); buttons[index].scrollIntoView({ block: 'nearest' }); }
+}
+
+function handleDelegateKeydown(e) {
+    if (document.getElementById('delegate-options').classList.contains('hidden')) return;
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        delegateActiveIndex = Math.min(delegateActiveIndex + 1, delegateVisibleList.length - 1);
+        highlightDelegateOption(delegateActiveIndex);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        delegateActiveIndex = Math.max(delegateActiveIndex - 1, 0);
+        highlightDelegateOption(delegateActiveIndex);
+    } else if (e.key === 'Enter') {
+        if (delegateActiveIndex >= 0 && delegateVisibleList[delegateActiveIndex]) {
+            e.preventDefault();
+            selectDelegate(delegateVisibleList[delegateActiveIndex].id);
+        }
+    } else if (e.key === 'Escape') {
+        document.getElementById('delegate-options').classList.add('hidden');
+    }
 }
 
 document.addEventListener('click', e => {
@@ -1070,7 +1149,7 @@ function renderHr() {
     });
     document.getElementById('hr-table-body').innerHTML = !total ? emptyStateRow(3, 'fa-magnifying-glass', 'Không tìm thấy nhân viên phù hợp.') : rows.map(op => `
         <tr class="border-b border-slate-100 hover:bg-slate-50">
-            <td class="p-4"><p class="font-bold text-slate-800 text-sm">${op.name}</p><p class="flex items-center gap-1 text-xs font-mono text-slate-400 mt-0.5"><span>${op.address}</span>${copyBtnHtml(op.address)}</p>${op.flaggedNote ? `<p class="text-xs text-amber-600 mt-0.5">${op.flaggedNote}</p>` : ''}</td>
+            <td class="p-4"><p class="font-bold text-slate-800 text-sm break-words">${op.name}</p><p class="flex items-center gap-1 text-xs font-mono text-slate-400 mt-0.5"><span class="break-all">${op.address}</span>${copyBtnHtml(op.address)}</p>${op.flaggedNote ? `<p class="text-xs text-amber-600 mt-0.5">${op.flaggedNote}</p>` : ''}</td>
             <td class="p-4 text-sm font-bold text-slate-700">${fmtEth(op.stakeEth)} ETH</td>
             <td class="p-4"><button onclick="toggleHrActive(this, '${op.id}')" class="${op.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} px-3 py-1 rounded text-xs font-bold">${op.isActive ? 'HOẠT ĐỘNG' : 'BẬT HĐ'}</button></td>
         </tr>`).join('') + loadMoreRow;
@@ -1099,7 +1178,7 @@ function renderSlash() {
     });
     document.getElementById('slash-table-body').innerHTML = (!total ? emptyStateRow(4, 'fa-magnifying-glass', 'Không tìm thấy nhân viên phù hợp.') : rows.map(op => `
         <tr class="border-b border-slate-100" id="row-operator-${op.id}">
-            <td class="p-4"><p class="font-semibold text-sm">${op.name}</p><p class="flex items-center gap-1 text-xs font-mono text-slate-400 mt-0.5"><span>${op.address}</span>${copyBtnHtml(op.address)}</p>${op.flaggedNote ? `<p class="text-xs text-red-500 mt-0.5"><i class="fa-solid fa-flag"></i> ${op.flaggedNote}</p>` : ''}</td>
+            <td class="p-4"><p class="font-semibold text-sm break-words">${op.name}</p><p class="flex items-center gap-1 text-xs font-mono text-slate-400 mt-0.5"><span class="break-all">${op.address}</span>${copyBtnHtml(op.address)}</p>${op.flaggedNote ? `<p class="text-xs text-red-500 mt-0.5"><i class="fa-solid fa-flag"></i> ${op.flaggedNote}</p>` : ''}</td>
             <td class="p-4"><span class="font-bold" id="op-${op.id}-stake">${fmtEth(op.stakeEth)} ETH</span></td>
             <td class="p-4" id="op-${op.id}-status"><span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">HOẠT ĐỘNG</span></td>
             <td class="p-4 text-right" id="op-${op.id}-actions">
@@ -1117,11 +1196,21 @@ function renderSlash() {
 function confirmSlash(operatorId, mode, code) {
     toggleMenu('slash-menu-' + operatorId);
     const op = DATA.operators.find(o => o.id === operatorId);
-    const penalty = mode === 'soft' ? DATA.violationPenalties.find(p => p.code === code) : null;
-    const desc = mode === 'hard' ? 'tịch thu 100% tiền cọc' : `trừ ${penalty.bps / 100}% tiền cọc (${penalty.label})`;
+    if (mode === 'hard') {
+        askConfirm(
+            "Xác nhận xử phạt",
+            `Bạn sắp tịch thu toàn bộ ${fmtEth(op.stakeEth)} ETH tiền cọc của "${op.name}" và chấm dứt tư cách hoạt động ngay lập tức. Hành động này không thể hoàn tác.`,
+            () => executeSlash(operatorId, mode, code),
+            "Xác nhận phạt",
+            op.name
+        );
+        return;
+    }
+    const penalty = DATA.violationPenalties.find(p => p.code === code);
+    const cut = Math.max(op.stakeEth * penalty.bps / 10000, 0.01);
     askConfirm(
         "Xác nhận xử phạt",
-        `Bạn sắp ${desc} của "${op.name}". Hành động này không thể hoàn tác.`,
+        `Bạn sắp trừ ${fmtEth(cut)} ETH (${penalty.bps / 100}%, mã lỗi "${penalty.label}") khỏi tiền cọc của "${op.name}". Hành động này không thể hoàn tác.`,
         () => executeSlash(operatorId, mode, code),
         "Xác nhận phạt"
     );
@@ -1252,7 +1341,7 @@ function renderWhitelistTable() {
     document.getElementById('whitelist-table-body').innerHTML = (!total ? emptyStateRow(3, 'fa-magnifying-glass', 'Không tìm thấy nhân viên phù hợp.') : rows.map(op => {
         const wl = whitelistEntry(docType, op.id);
         return `<tr class="border-b border-slate-100">
-            <td class="p-3 text-sm font-medium">${op.name}</td>
+            <td class="p-3 text-sm font-medium break-words">${op.name}</td>
             <td class="p-3 text-center"><input type="checkbox" ${wl ? 'checked' : ''} onchange="toggleCoSignWhitelist(${docType}, '${op.id}', this.checked)" class="w-4 h-4"></td>
             <td class="p-3"><select onchange="setCoSignRole(${docType}, '${op.id}', this.value)" ${wl ? '' : 'disabled'} class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-sm outline-none">
                 ${DATA.roleCatalog.map(r => `<option value="${r.roleId}" ${wl && wl.roleId === r.roleId ? 'selected' : ''}>${r.label}</option>`).join('')}
@@ -1387,7 +1476,7 @@ function renderPlatform() {
 
     document.getElementById('tenant-table-body').innerHTML = DATA.tenants.map(t => `
         <tr class="border-b border-slate-100 ${t.isActive ? '' : 'bg-red-50'}">
-            <td class="p-4 font-bold text-blue-800">${t.name}</td>
+            <td class="p-4 font-bold text-blue-800 break-words">${t.name}</td>
             <td class="p-4">${t.isActive ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">ACTIVE</span>' : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">SUSPENDED</span>'}</td>
             <td class="p-4 text-right">${t.isActive
                 ? `<button onclick="toggleTenantStatus(this, '${t.id}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg text-sm flex items-center gap-2 ml-auto transition-colors"><i class="fa-solid fa-power-off"></i> Đình chỉ</button>`
@@ -1524,7 +1613,7 @@ function renderEmergencyRecovery() {
     }
     container.innerHTML = stranded.map(op => `
         <div class="p-6 border-b border-slate-100 flex items-center justify-between gap-4">
-            <div><p class="font-bold text-slate-800">${op.name}</p><p class="text-xs text-red-500">${op.flaggedNote || ''} — ${fmtEth(op.stakeEth)} ETH</p></div>
+            <div class="min-w-0"><p class="font-bold text-slate-800 break-words">${op.name}</p><p class="text-xs text-red-500 break-words">${op.flaggedNote || ''} — ${fmtEth(op.stakeEth)} ETH</p></div>
             <div class="flex gap-2">
                 <input type="text" placeholder="Địa chỉ ví mới 0x..." class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
                 <button onclick="recoverByAdmin(this, '${op.id}')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-bold">Chỉ định ví mới</button>
