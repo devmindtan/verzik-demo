@@ -79,8 +79,8 @@ function trapModalTab(modalEl, e) {
 function openConnectModal() {
     document.getElementById('connect-wallet-list').innerHTML = allSystemWallets().map(w => `
         <button onclick="connectWallet('${w.id}')" class="w-full text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl p-3 transition-colors">
-            <p class="text-sm font-medium text-white truncate" title="${w.label}">${w.label}</p>
-            <p class="text-xs font-mono text-slate-400 truncate">${w.address}</p>
+            <p class="text-sm font-medium text-white truncate" title="${escapeHtml(w.label)}">${escapeHtml(w.label)}</p>
+            <p class="text-xs font-mono text-slate-400 truncate">${escapeHtml(w.address)}</p>
         </button>`).join('');
     const modal = document.getElementById('connect-gate');
     modal.classList.remove('hidden');
@@ -167,6 +167,10 @@ function bestRoleForWallet() {
     return 'public';
 }
 function fmtEth(n) { return Number(n).toFixed(2); }
+// Output-encodes any free-text field before it's interpolated into an innerHTML template.
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
 function roleLabel(roleId) { return DATA.roleCatalog.find(r => r.roleId === roleId)?.label || `Role ${roleId}`; }
 function policyFor(docType) { return DATA.coSignPolicies.find(p => p.docType === docType); }
 function whitelistEntry(docType, operatorId) { return DATA.coSignWhitelist.find(w => w.docType === docType && w.operatorId === operatorId); }
@@ -398,7 +402,7 @@ function showToast(title, message, color = "emerald") {
     const el = document.createElement('div');
     el.className = 'bg-slate-800 text-white px-5 py-4 rounded-xl shadow-2xl flex items-start gap-3 transition-all duration-300 opacity-0 translate-y-2 w-full';
     el.innerHTML = `<div class="w-8 h-8 rounded-full flex items-center justify-center text-white bg-${color}-500 shrink-0"><i class="fa-solid ${iconClass}"></i></div>
-        <div class="flex-1 min-w-0"><p class="font-bold text-sm">${title}</p><p class="text-xs text-slate-300 mt-0.5">${message}</p></div>
+        <div class="flex-1 min-w-0"><p class="font-bold text-sm">${escapeHtml(title)}</p><p class="text-xs text-slate-300 mt-0.5">${escapeHtml(message)}</p></div>
         <button class="text-slate-400 hover:text-white shrink-0" aria-label="Đóng"><i class="fa-solid fa-xmark text-xs"></i></button>`;
     container.appendChild(el);
     requestAnimationFrame(() => el.classList.remove('opacity-0', 'translate-y-2'));
@@ -558,14 +562,14 @@ function renderMyDocs() {
                 ${valid ? `<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><i class="fa-solid fa-check-circle"></i> HỢP LỆ</span>`
                         : `<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><i class="fa-solid fa-ban"></i> ĐÃ THU HỒI</span>`}
             </div>
-            <h3 class="text-xl font-bold break-words ${valid ? 'text-slate-800' : 'text-slate-500 line-through'} mb-1">${d.title}</h3>
-            <p class="text-sm text-slate-500 mb-4 flex-1">Phát hành bởi: ${d.tenantName}</p>
+            <h3 class="text-xl font-bold break-words ${valid ? 'text-slate-800' : 'text-slate-500 line-through'} mb-1">${escapeHtml(d.title)}</h3>
+            <p class="text-sm text-slate-500 mb-4 flex-1">Phát hành bởi: ${escapeHtml(d.tenantName)}</p>
             <div class="bg-slate-50 rounded-lg p-3 text-xs mb-4 border border-slate-100">
                 <div class="flex justify-between mb-1"><span class="text-slate-500">Mã chứng chỉ:</span><span class="font-mono font-medium text-slate-700">${d.id}</span></div>
                 <div class="flex justify-between mb-1"><span class="text-slate-500">Ngày cấp:</span><span class="font-medium text-slate-700">${d.issuedAt}</span></div>
                 ${valid
                     ? `<div class="flex justify-between items-center"><span class="text-slate-500">Độ tin cậy:</span><span class="font-bold text-blue-600 flex items-center gap-1"><i class="fa-solid fa-award"></i> ${trust}</span></div>`
-                    : `<div class="flex justify-between items-start gap-2"><span class="text-slate-500 shrink-0">Lý do thu hồi:</span><span class="font-medium text-red-600 text-right break-words">${d.revokedReason}</span></div>`}
+                    : `<div class="flex justify-between items-start gap-2"><span class="text-slate-500 shrink-0">Lý do thu hồi:</span><span class="font-medium text-red-600 text-right break-words">${escapeHtml(d.revokedReason)}</span></div>`}
             </div>
             <div class="flex gap-2">
             <button onclick="switchRole('public');switchView('verify');document.getElementById('search-input').value='${d.id}';handleSearch()" class="flex-1 text-center font-semibold py-2 rounded-lg transition-colors border text-sm ${valid ? 'text-blue-600 hover:bg-blue-50 border-blue-100' : 'text-slate-500 hover:bg-slate-200 border-slate-200'}">Xem chi tiết trên chuỗi</button>
@@ -606,7 +610,7 @@ function renderAccount() {
     document.getElementById('account-operator-status').innerHTML = !op
         ? 'Ví này không phải Operator.'
         : op.isActive
-            ? `Đang hoạt động tại ${DATA.tenants.find(t => t.id === op.tenantId)?.name || op.tenantId} — cọc ${fmtEth(op.stakeEth)} ETH. <button onclick="switchView('stake')" class="text-blue-600 font-semibold hover:underline">Xem cọc →</button>`
+            ? `Đang hoạt động tại ${escapeHtml(DATA.tenants.find(t => t.id === op.tenantId)?.name || op.tenantId)} — cọc ${fmtEth(op.stakeEth)} ETH. <button onclick="switchView('stake')" class="text-blue-600 font-semibold hover:underline">Xem cọc →</button>`
             : (op.stakeEth > 0 ? `Đã từng đặt cọc (${fmtEth(op.stakeEth)} ETH) nhưng đang tạm ngưng hoạt động.` : `Chưa gia nhập tổ chức nào. <button onclick="switchView('join')" class="text-emerald-600 font-semibold hover:underline">Gia nhập ngay →</button>`);
 
     document.getElementById('account-governance-status').innerText = governance.length
@@ -661,15 +665,15 @@ function renderAccountActivity(op) {
     if (op) {
         DATA.documents.filter(d => d.issuer === op.name).forEach(d => events.push({
             icon: 'fa-file-signature', color: 'emerald', time: d.issuedAt,
-            text: `Phát hành chứng chỉ <span class="font-bold">${d.title}</span> cho ${d.owner}.`
+            text: `Phát hành chứng chỉ <span class="font-bold">${escapeHtml(d.title)}</span> cho ${escapeHtml(d.owner)}.`
         }));
         DATA.documents.filter(d => d.owner === op.name).forEach(d => events.push({
             icon: d.status === 'revoked' ? 'fa-ban' : 'fa-award', color: d.status === 'revoked' ? 'red' : 'blue', time: d.issuedAt,
-            text: d.status === 'revoked' ? `Chứng chỉ <span class="font-bold">${d.title}</span> đã bị thu hồi.` : `Nhận chứng chỉ <span class="font-bold">${d.title}</span> từ ${d.tenantName}.`
+            text: d.status === 'revoked' ? `Chứng chỉ <span class="font-bold">${escapeHtml(d.title)}</span> đã bị thu hồi.` : `Nhận chứng chỉ <span class="font-bold">${escapeHtml(d.title)}</span> từ ${escapeHtml(d.tenantName)}.`
         }));
         DATA.recoveryAliases.filter(a => a.currentOperatorId === op.id).forEach(a => events.push({
             icon: 'fa-life-ring', color: 'amber', time: a.recoveredAt,
-            text: `Khôi phục ví thành công tại ${a.tenantName} (${a.reason}).`
+            text: `Khôi phục ví thành công tại ${escapeHtml(a.tenantName)} (${escapeHtml(a.reason)}).`
         }));
     }
     const { rows: shown, loadMoreDiv } = applyListControls(events, 'account-activity', `renderAccountActivity(me())`, {});
@@ -762,11 +766,11 @@ function renderExplorer() {
         <div class="flex gap-4"><div class="w-8 h-8 rounded-full bg-${e.color}-100 text-${e.color}-600 flex items-center justify-center shrink-0"><i class="fa-solid ${e.icon} text-xs"></i></div><div><p class="text-sm font-medium text-slate-700">${e.text}</p><p class="text-xs text-slate-400 mt-1">${e.time}</p></div></div>`).join('');
 
     document.getElementById('explorer-tenant-table').innerHTML = DATA.tenants.map(t => `
-        <tr class="border-b border-slate-100"><td class="p-3 font-medium text-sm break-words">${t.name}</td><td class="p-3 text-sm font-bold text-blue-600">${fmtEth(t.stakeTotalEth)} ETH</td><td class="p-3">${t.isActive ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">ACTIVE</span>' : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">SUSPENDED</span>'}</td></tr>`).join('');
+        <tr class="border-b border-slate-100"><td class="p-3 font-medium text-sm break-words">${escapeHtml(t.name)}</td><td class="p-3 text-sm font-bold text-blue-600">${fmtEth(t.stakeTotalEth)} ETH</td><td class="p-3">${t.isActive ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">ACTIVE</span>' : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">SUSPENDED</span>'}</td></tr>`).join('');
 
     const tenantSelect = document.getElementById('explorer-operator-tenant-select');
     const prevSelection = tenantSelect.value || myTenant().id;
-    tenantSelect.innerHTML = DATA.tenants.map(t => `<option value="${t.id}" ${t.id === prevSelection ? 'selected' : ''}>${t.name}</option>`).join('');
+    tenantSelect.innerHTML = DATA.tenants.map(t => `<option value="${t.id}" ${t.id === prevSelection ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
     renderExplorerOperators(prevSelection);
 }
 
@@ -793,8 +797,8 @@ function lookupRecoveryAlias() {
     if (!hit) { resultEl.innerHTML = `<p class="text-sm text-slate-500 mt-3">Không tìm thấy lịch sử khôi phục nào khớp.</p>`; return; }
     const op = DATA.operators.find(o => o.id === hit.currentOperatorId);
     resultEl.innerHTML = `<div class="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm">
-        <p><strong>${op ? op.name : hit.currentOperatorId}</strong> (${hit.tenantName}) là kết quả khôi phục từ ví gốc <span class="font-mono">${hit.rootAddress}</span>.</p>
-        <p class="text-slate-500 mt-1">Khôi phục ngày ${hit.recoveredAt} — Lý do: ${hit.reason}</p>
+        <p><strong>${escapeHtml(op ? op.name : hit.currentOperatorId)}</strong> (${escapeHtml(hit.tenantName)}) là kết quả khôi phục từ ví gốc <span class="font-mono">${escapeHtml(hit.rootAddress)}</span>.</p>
+        <p class="text-slate-500 mt-1">Khôi phục ngày ${hit.recoveredAt} — Lý do: ${escapeHtml(hit.reason)}</p>
     </div>`;
 }
 
@@ -806,7 +810,7 @@ function renderIssue() {
 
     const myDocs = DATA.documents.filter(d => d.tenantId === me().tenantId);
     document.getElementById('issue-history-list').innerHTML = !myDocs.length ? emptyStateHtml('fa-inbox', 'Chưa có chứng từ nào được phát hành.') : myDocs.map(d =>
-        `<div class="p-3 border border-slate-100 rounded-lg bg-slate-50"><p class="font-semibold text-sm">${d.id}</p><p class="text-xs text-slate-500">${d.owner}</p></div>`).join('');
+        `<div class="p-3 border border-slate-100 rounded-lg bg-slate-50"><p class="font-semibold text-sm">${d.id}</p><p class="text-xs text-slate-500">${escapeHtml(d.owner)}</p></div>`).join('');
 }
 
 function handleIssue() {
@@ -832,7 +836,7 @@ function handleIssue() {
         DATA.documents.push({
             id, title: `Chứng Từ (${policy ? policy.label : docType})`, owner, tenantId: t.id, tenantName: t.name,
             issuer: me().name, issuedAt: TODAY, docType, status: 'valid', cid, content: { pages },
-            coSign: { trustedCount: issuerCounts ? 1 : 0, trustedRoleIds: issuerCounts && wl ? [wl.roleId] : [], qualified: false }
+            coSign: { trustedCount: issuerCounts ? 1 : 0, trustedRoleIds: issuerCounts && wl ? [wl.roleId] : [], signedByOperatorIds: issuerCounts ? [me().id] : [], qualified: false }
         });
         DATA.explorer.totalDocuments += 1;
         btn.disabled = false;
@@ -843,8 +847,10 @@ function handleIssue() {
 }
 
 // ================= COSIGN (operator) =================
+// Excludes documents the operator issued themselves — letting an issuer co-sign their own
+// certificate would defeat the whole point of a second, independent trusted signer.
 function pendingCosignDocs(op) {
-    return DATA.documents.filter(d => d.tenantId === op.tenantId && d.status === 'valid' && !isDocQualified(d));
+    return DATA.documents.filter(d => d.tenantId === op.tenantId && d.status === 'valid' && d.issuer !== op.name && !isDocQualified(d));
 }
 
 function renderCosign() {
@@ -857,13 +863,19 @@ function renderCosign() {
     document.getElementById('cosign-table-body').innerHTML = (pending.length && !total ? emptyStateRow(3, 'fa-magnifying-glass', 'Không tìm thấy chứng từ phù hợp.') : rows.map(d => `
         <tr class="border-b border-slate-100" id="row-cosign-${d.id}">
             <td class="p-4 font-mono text-sm text-blue-600 font-medium">${d.id}</td>
-            <td class="p-4"><p class="font-semibold text-sm">${d.owner}</p></td>
+            <td class="p-4"><p class="font-semibold text-sm">${escapeHtml(d.owner)}</p></td>
             <td class="p-4 text-right"><button onclick="handleCoSign('${d.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 ml-auto"><i class="fa-solid fa-pen-nib"></i> Ký duyệt</button></td>
         </tr>`).join('')) + loadMoreRow;
 }
 
 function handleCoSign(docId) {
     const doc = DATA.documents.find(d => d.id === docId);
+    // Same wallet re-clicking (double-click, or navigating away and back while the 800ms
+    // "chain confirmation" is still pending) must not count as a second, independent signer.
+    if ((doc.coSign.signedByOperatorIds || []).includes(me().id)) {
+        showToast("Lỗi", "Bạn đã ký chứng chỉ này rồi.", "red");
+        return;
+    }
     const policy = policyFor(doc.docType);
     if (policy && policy.enabled) {
         const wl = whitelistEntry(doc.docType, me().id);
@@ -874,6 +886,7 @@ function handleCoSign(docId) {
     row.lastElementChild.innerHTML = `<div class="loader border-emerald-600 border-top-transparent h-4 w-4 ml-auto"></div>`;
     setTimeout(() => {
         doc.coSign.trustedCount += 1;
+        doc.coSign.signedByOperatorIds = [...(doc.coSign.signedByOperatorIds || []), me().id];
         if (policy && policy.enabled) {
             const wl = whitelistEntry(doc.docType, me().id);
             if (wl && !doc.coSign.trustedRoleIds.includes(wl.roleId)) doc.coSign.trustedRoleIds.push(wl.roleId);
@@ -1067,7 +1080,7 @@ function renderJoin() {
     const operator = me();
     const select = document.getElementById('join-tenant-select');
     const prevValue = select.value || operator.tenantId || DATA.tenants[0].id;
-    select.innerHTML = DATA.tenants.map(t => `<option value="${t.id}" ${t.id === prevValue ? 'selected' : ''}>${t.name}</option>`).join('');
+    select.innerHTML = DATA.tenants.map(t => `<option value="${t.id}" ${t.id === prevValue ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
     const t = DATA.tenants.find(x => x.id === select.value) || DATA.tenants[0];
 
     document.getElementById('join-tenant-name').innerText = t.name;
@@ -1522,10 +1535,10 @@ function renderPlatform() {
             : apps.map(a => `
             <div class="p-6 border-b border-slate-100 flex items-start justify-between gap-4">
                 <div>
-                    <p class="font-bold text-slate-800">${a.name}</p>
-                    <p class="text-xs text-slate-500 font-mono mt-1 flex flex-wrap items-center gap-x-1">Admin: ${a.admin}${copyBtnHtml(a.admin)} · QL Vận hành: ${a.opManager}${copyBtnHtml(a.opManager)} · Treasury: ${a.treasury}${copyBtnHtml(a.treasury)}</p>
+                    <p class="font-bold text-slate-800">${escapeHtml(a.name)}</p>
+                    <p class="text-xs text-slate-500 font-mono mt-1 flex flex-wrap items-center gap-x-1">Admin: ${escapeHtml(a.admin)}${copyBtnHtml(a.admin)} · QL Vận hành: ${escapeHtml(a.opManager)}${copyBtnHtml(a.opManager)} · Treasury: ${escapeHtml(a.treasury)}${copyBtnHtml(a.treasury)}</p>
                     <p class="text-xs text-slate-500 mt-1">Đề xuất cọc tối thiểu: ${fmtEth(a.minStakeEth)} ETH</p>
-                    ${a.note ? `<p class="text-sm text-slate-600 mt-2 bg-slate-50 rounded-lg p-2">${a.note}</p>` : ''}
+                    ${a.note ? `<p class="text-sm text-slate-600 mt-2 bg-slate-50 rounded-lg p-2">${escapeHtml(a.note)}</p>` : ''}
                 </div>
                 <div class="flex gap-2 shrink-0">
                     <button onclick="approveApplication(this, '${a.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-check"></i> Duyệt</button>
@@ -1536,7 +1549,7 @@ function renderPlatform() {
 
     document.getElementById('tenant-table-body').innerHTML = DATA.tenants.map(t => `
         <tr class="border-b border-slate-100 ${t.isActive ? '' : 'bg-red-50'}">
-            <td class="p-4 font-bold text-blue-800 break-words">${t.name}</td>
+            <td class="p-4 font-bold text-blue-800 break-words">${escapeHtml(t.name)}</td>
             <td class="p-4">${t.isActive ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">ACTIVE</span>' : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">SUSPENDED</span>'}</td>
             <td class="p-4 text-right">${t.isActive
                 ? `<button onclick="toggleTenantStatus(this, '${t.id}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg text-sm flex items-center gap-2 ml-auto transition-colors"><i class="fa-solid fa-power-off"></i> Đình chỉ</button>`
@@ -1637,7 +1650,7 @@ function rejectApplication(btn, appId) {
 // ================= TREASURY (tenant) =================
 function renderTreasury() {
     const t = myTenant();
-    document.getElementById('treasury-current').innerHTML = `<span>${t.treasury}</span>${copyBtnHtml(t.treasury)}`;
+    document.getElementById('treasury-current').innerHTML = `<span>${escapeHtml(t.treasury)}</span>${copyBtnHtml(t.treasury)}`;
     document.getElementById('treasury-input').value = '';
     clearFieldErrors(['treasury-input']);
     showFormError('treasury-form-errors', []);
