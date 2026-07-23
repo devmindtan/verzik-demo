@@ -56,9 +56,9 @@ async function init() {
 
 function openConnectModal() {
     document.getElementById('connect-wallet-list').innerHTML = allSystemWallets().map(w => `
-        <button onclick="connectWallet('${w.id}')" class="w-full text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl p-3 flex items-center justify-between gap-2 transition-colors">
-            <span class="text-sm font-medium text-white">${w.label}</span>
-            <span class="text-xs font-mono text-slate-400">${w.address}</span>
+        <button onclick="connectWallet('${w.id}')" class="w-full text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl p-3 transition-colors">
+            <p class="text-sm font-medium text-white truncate" title="${w.label}">${w.label}</p>
+            <p class="text-xs font-mono text-slate-400 truncate">${w.address}</p>
         </button>`).join('');
     document.getElementById('connect-gate').classList.remove('hidden');
 }
@@ -67,11 +67,15 @@ function closeConnectModal() { document.getElementById('connect-gate').classList
 function connectWallet(walletId) {
     connectedWallet = allSystemWallets().find(w => w.id === walletId);
     closeConnectModal();
-    document.getElementById('wallet-address-label').innerText = connectedWallet.label;
+    const walletLabelEl = document.getElementById('wallet-address-label');
+    walletLabelEl.innerText = connectedWallet.label;
+    walletLabelEl.title = connectedWallet.label;
     document.getElementById('wallet-connected-badge').classList.remove('hidden');
     document.getElementById('wallet-connected-badge').classList.add('flex');
     document.getElementById('btn-header-connect').classList.add('hidden');
-    switchView(currentViewId);
+    // Route straight into whichever role this wallet actually holds — no landing on Public
+    // first and making the user find their own way to the right tab.
+    switchRole(bestRoleForWallet());
     showToast("Đã kết nối", connectedWallet.label);
 }
 
@@ -80,8 +84,9 @@ function disconnectWallet() {
     document.getElementById('wallet-connected-badge').classList.add('hidden');
     document.getElementById('wallet-connected-badge').classList.remove('flex');
     document.getElementById('btn-header-connect').classList.remove('hidden');
-    if (roleConfig[currentRoleId] && currentRoleId !== 'public') switchRole('public');
-    else switchView(currentViewId);
+    // Always re-run switchRole('public'), even if already on 'public' — it's what re-enables
+    // the other role tabs (they get disabled while a wallet is connected, see switchRole()).
+    switchRole('public');
 }
 
 function openSidebar() {
@@ -106,12 +111,18 @@ function myTenant() {
 function operatorTenant() { return DATA.tenants.find(t => t.id === me().tenantId) || DATA.tenants[0]; }
 function isBusinessOwner() { return !!connectedWallet && DATA.tenants.some(t => t.admin === connectedWallet.address || t.operatorManager === connectedWallet.address || t.treasury === connectedWallet.address); }
 function isProtocolAdminWallet() { return connectedWallet?.id === 'protocol-admin'; }
+function isTenantAdmin() { return !!connectedWallet && DATA.tenants.some(t => t.admin === connectedWallet.address); }
+function isTenantOpManager() { return !!connectedWallet && DATA.tenants.some(t => t.operatorManager === connectedWallet.address); }
+function isTenantTreasury() { return !!connectedWallet && DATA.tenants.some(t => t.treasury === connectedWallet.address); }
 
 function canAccessRole(roleId) {
     if (roleId === 'public') return true;
     if (!connectedWallet) return false;
     if (roleId === 'admin') return isProtocolAdminWallet();
-    if (roleId === 'tenant') return DATA.tenants.some(t => t.admin === connectedWallet.address || t.operatorManager === connectedWallet.address);
+    // Treasury is a real governance seat of a tenant too (just with no exclusive actions of its
+    // own in this demo — the contract never calls anything AS treasury, it only receives funds) —
+    // it belongs in the "Công ty" role bucket, not lumped in with generic Public.
+    if (roleId === 'tenant') return DATA.tenants.some(t => t.admin === connectedWallet.address || t.operatorManager === connectedWallet.address || t.treasury === connectedWallet.address);
     if (roleId === 'operator') {
         if (connectedWallet.kind !== 'operator') return false;
         const op = DATA.operators.find(o => o.id === connectedWallet.operatorId);
@@ -121,6 +132,15 @@ function canAccessRole(roleId) {
         return !!(op && (op.isActive || op.stakeEth > 0));
     }
     return false;
+}
+// Whichever privileged role a wallet actually holds — each wallet maps to at most one
+// non-public role (kind is exclusive: operator OR tenant-governance OR protocol-admin, never
+// combined, mirroring the contract's role-segregation invariants), so there's no ambiguity here.
+function bestRoleForWallet() {
+    if (canAccessRole('admin')) return 'admin';
+    if (canAccessRole('tenant')) return 'tenant';
+    if (canAccessRole('operator')) return 'operator';
+    return 'public';
 }
 function fmtEth(n) { return Number(n).toFixed(2); }
 function roleLabel(roleId) { return DATA.roleCatalog.find(r => r.roleId === roleId)?.label || `Role ${roleId}`; }
@@ -202,10 +222,22 @@ function switchRole(roleId) {
         return;
     }
     currentRoleId = roleId;
-    document.getElementById('personal-nav-block').classList.toggle('hidden', roleId === 'admin');
+    // Protocol Admin gets neither the permissionless registration flows nor a personal document
+    // wallet (they're barred from holding any tenant/operator identity) — Hồ Sơ Cá Nhân stays,
+    // it's just read-only identity info for whichever wallet is connected, admin included.
+    document.getElementById('register-nav-block').classList.toggle('hidden', roleId === 'admin');
+    // Wrapper div, not the <button> itself: switchView() (called at the end of this function)
+    // unconditionally rewrites every nav-* button's className to highlight the active view,
+    // which would silently wipe out a 'hidden' class set directly on the button.
+    document.getElementById('my-docs-nav-wrap').classList.toggle('hidden', roleId === 'admin');
 
     ['public', 'operator', 'tenant', 'admin'].forEach(r => {
         const btn = document.getElementById(`role-${r}`);
+        // Once a wallet is connected, its role is fixed — lock out every other tab instead of
+        // letting the user click around to roles the wallet doesn't actually hold.
+        const locked = !!connectedWallet && r !== roleId;
+        btn.disabled = locked;
+        btn.title = locked ? 'Ngắt kết nối ví để đổi vai trò khác' : '';
         if (r === roleId) {
             btn.className = `px-2.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all shadow whitespace-nowrap text-white ${r === 'public' ? 'bg-slate-800' : (r === 'operator' ? 'bg-blue-600' : (r === 'tenant' ? 'bg-amber-600' : 'bg-purple-600'))}`;
             btn.querySelector('i').classList.remove('text-slate-300', 'text-blue-600', 'text-amber-600', 'text-purple-600');
@@ -214,6 +246,7 @@ function switchRole(roleId) {
             btn.className = `px-2.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap text-slate-600 hover:text-${r === 'operator' ? 'blue' : (r === 'tenant' ? 'amber' : 'purple')}-600`;
             btn.querySelector('i').className = `fa-solid ${r === 'public' ? 'fa-earth-americas text-slate-400' : (r === 'operator' ? 'fa-user-tie' : (r === 'tenant' ? 'fa-building-shield' : 'fa-server'))} mr-1`;
         }
+        if (locked) { btn.classList.add('opacity-40', 'cursor-not-allowed'); }
     });
 
     document.getElementById('sidebar-role-title').innerHTML = roleConfig[roleId].title;
@@ -221,7 +254,20 @@ function switchRole(roleId) {
     ['public', 'operator', 'tenant', 'admin'].forEach(r => document.getElementById(`menu-group-${r}`).classList.add('hidden'));
     document.getElementById(`menu-group-${roleId}`).classList.remove('hidden');
 
-    switchView(roleConfig[roleId].defaultView);
+    // Within "Công ty": Admin and QL Vận Hành each only see the submenu matching their own
+    // authority (previously any of the 3 governance seats saw every action, which overstated
+    // what a given wallet could actually do) — Treasury holds neither, so it sees just a note.
+    let defaultView = roleConfig[roleId].defaultView;
+    if (roleId === 'tenant') {
+        const admin = isTenantAdmin(), opManager = isTenantOpManager();
+        document.getElementById('tenant-menu-opmanager').classList.toggle('hidden', !opManager);
+        document.getElementById('tenant-menu-admin').classList.toggle('hidden', !admin);
+        document.getElementById('tenant-menu-treasury-note').classList.toggle('hidden', admin || opManager);
+        if (!admin && !opManager) defaultView = 'account';
+        else if (!opManager) defaultView = 'revoke';
+    }
+
+    switchView(defaultView);
 }
 
 let currentViewId = 'explorer';
@@ -614,7 +660,7 @@ function renderExplorer() {
     document.getElementById('explorer-doc-count').innerText = ex.totalDocuments.toLocaleString('vi-VN');
 
     document.getElementById('explorer-ranking').innerHTML = ex.ranking.map((r, i) => `
-        <div class="flex items-center justify-between"><div class="flex items-center gap-3"><div class="w-8 h-8 font-bold text-slate-400 bg-slate-50 rounded flex items-center justify-center">#${i + 1}</div><div><p class="font-bold text-slate-700 text-sm">${r.name}</p></div></div><div class="text-right"><p class="font-bold text-blue-600 text-sm">${fmtEth(r.stakeEth)} ETH</p></div></div>`).join('');
+        <div class="flex items-center justify-between gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-8 h-8 font-bold text-slate-400 bg-slate-50 rounded flex items-center justify-center shrink-0">#${i + 1}</div><div class="min-w-0"><p class="font-bold text-slate-700 text-sm truncate" title="${r.name}">${r.name}</p></div></div><div class="text-right shrink-0"><p class="font-bold text-blue-600 text-sm">${fmtEth(r.stakeEth)} ETH</p></div></div>`).join('');
 
     document.getElementById('explorer-events').innerHTML = ex.events.map(e => `
         <div class="flex gap-4"><div class="w-8 h-8 rounded-full bg-${e.color}-100 text-${e.color}-600 flex items-center justify-center shrink-0"><i class="fa-solid ${e.icon} text-xs"></i></div><div><p class="text-sm font-medium text-slate-700">${e.text}</p><p class="text-xs text-slate-400 mt-1">${e.time}</p></div></div>`).join('');
@@ -829,7 +875,7 @@ function renderSecurity() {
 function renderDelegateOptions(list) {
     const box = document.getElementById('delegate-options');
     box.innerHTML = list.length ? list.map(o =>
-        `<button type="button" onclick="selectDelegate('${o.id}')" class="w-full text-left px-3 py-2 hover:bg-slate-100 text-sm flex justify-between items-center gap-2 border-b border-slate-50 last:border-0"><span class="font-medium text-slate-700">${o.name}</span><span class="text-slate-400 font-mono text-xs">${o.address}</span></button>`
+        `<button type="button" onclick="selectDelegate('${o.id}')" class="w-full text-left px-3 py-2 hover:bg-slate-100 text-sm flex justify-between items-center gap-2 border-b border-slate-50 last:border-0"><span class="font-medium text-slate-700 truncate min-w-0">${o.name}</span><span class="text-slate-400 font-mono text-xs shrink-0">${o.address}</span></button>`
     ).join('') : `<div class="px-3 py-3 text-sm text-slate-400 text-center">Không tìm thấy nhân viên phù hợp.</div>`;
 }
 
@@ -923,9 +969,11 @@ function joinAsOperatorAction() {
         operator.stakeEth = stake;
         operator.bio = bio;
         t.stakeTotalEth += stake;
-        renderJoin();
         btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Kích Hoạt Ví Làm Operator`;
         showToast("Thành công", `Đã kích hoạt ví làm Operator tại ${t.name} với cọc ${fmtEth(stake)} ETH.`);
+        // The wallet just became eligible for the Operator role — route straight into it instead
+        // of leaving the user stuck on Public with the role tabs locked to their old identity.
+        switchRole('operator');
     }, 800);
 }
 

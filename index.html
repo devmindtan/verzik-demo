@@ -208,11 +208,12 @@
         </div>
 
         <div class="flex items-center gap-2 sm:gap-4 min-w-0">
-            <div class="hidden items-center gap-2 text-sm border-r border-slate-200 pr-4 shrink-0"
+            <div class="hidden items-center gap-2 text-sm border-r border-slate-200 pr-4 shrink-0 min-w-0"
                 id="wallet-connected-badge">
-                <i class="fa-solid fa-circle text-emerald-500 text-[8px]"></i>
-                <span class="font-mono text-slate-500" id="wallet-address-label"></span>
-                <button onclick="disconnectWallet()" class="text-slate-400 hover:text-red-500 ml-1"
+                <i class="fa-solid fa-circle text-emerald-500 text-[8px] shrink-0"></i>
+                <span class="font-mono text-slate-500 truncate max-w-[8rem] sm:max-w-[14rem]" id="wallet-address-label"
+                    title=""></span>
+                <button onclick="disconnectWallet()" class="text-slate-400 hover:text-red-500 ml-1 shrink-0"
                     title="Ngắt kết nối"><i class="fa-solid fa-right-from-bracket"></i></button>
             </div>
             <button onclick="openConnectModal()" id="btn-header-connect"
@@ -315,11 +316,13 @@
                             <i class="fa-solid fa-address-card w-5 text-center text-sky-400"></i><span
                                 class="text-sm font-medium">Hồ Sơ Cá Nhân</span>
                         </button>
-                        <button onclick="switchView('my-docs')" id="nav-my-docs"
-                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-wallet w-5 text-center"></i><span class="text-sm font-medium">Kho
-                                Chứng Từ Của Tôi</span>
-                        </button>
+                        <div id="my-docs-nav-wrap">
+                            <button onclick="switchView('my-docs')" id="nav-my-docs"
+                                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                                <i class="fa-solid fa-wallet w-5 text-center"></i><span class="text-sm font-medium">Kho
+                                    Chứng Từ Của Tôi</span>
+                            </button>
+                        </div>
                     </nav>
                 </div>
                 <div class="border-t border-slate-800 mb-4"></div>
@@ -371,45 +374,53 @@
 
                 <!-- MENU: CÔNG TY (TENANT) -->
                 <div id="menu-group-tenant" class="role-menu-group hidden">
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-2">Quản trị Vận
-                        hành</p>
-                    <nav class="space-y-1">
-                        <button onclick="switchView('hr')" id="nav-hr"
-                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-users w-5 text-center"></i><span class="text-sm font-medium">Nhân sự &
-                                Phân quyền</span>
-                        </button>
-                        <button onclick="switchView('slash')" id="nav-slash"
-                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-gavel w-5 text-center text-red-400"></i><span
-                                class="text-sm font-medium">Xử phạt vi phạm</span>
-                        </button>
-                        <button onclick="switchView('config')" id="nav-config"
-                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-sliders w-5 text-center text-emerald-400"></i><span
-                                class="text-sm font-medium">Tham số Hợp đồng</span>
-                        </button>
-                        <button onclick="switchView('emergency-recovery')" id="nav-emergency-recovery"
-                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-user-shield w-5 text-center text-amber-500"></i><span
-                                class="text-sm font-medium">Khôi phục hộ nhân viên</span>
-                        </button>
-                    </nav>
+                    <div id="tenant-menu-opmanager">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-2">Quản trị Vận
+                            hành</p>
+                        <nav class="space-y-1">
+                            <button onclick="switchView('hr')" id="nav-hr"
+                                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                                <i class="fa-solid fa-users w-5 text-center"></i><span class="text-sm font-medium">Nhân sự &
+                                    Phân quyền</span>
+                            </button>
+                            <button onclick="switchView('slash')" id="nav-slash"
+                                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                                <i class="fa-solid fa-gavel w-5 text-center text-red-400"></i><span
+                                    class="text-sm font-medium">Xử phạt vi phạm</span>
+                            </button>
+                            <button onclick="switchView('config')" id="nav-config"
+                                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                                <i class="fa-solid fa-sliders w-5 text-center text-emerald-400"></i><span
+                                    class="text-sm font-medium">Tham số Hợp đồng</span>
+                            </button>
+                            <button onclick="switchView('emergency-recovery')" id="nav-emergency-recovery"
+                                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                                <i class="fa-solid fa-user-shield w-5 text-center text-amber-500"></i><span
+                                    class="text-sm font-medium">Khôi phục hộ nhân viên</span>
+                            </button>
+                        </nav>
+                    </div>
 
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-6">Quyền lực
-                        tối cao</p>
-                    <nav class="space-y-1">
-                        <button onclick="switchView('revoke')" id="nav-revoke"
-                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-ban w-5 text-center text-amber-500"></i><span
-                                class="text-sm font-medium">Thu hồi chứng chỉ</span>
-                        </button>
-                        <button onclick="switchView('treasury')" id="nav-treasury"
-                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-money-bill-transfer w-5 text-center text-amber-500"></i><span
-                                class="text-sm font-medium">Đổi tài khoản quỹ</span>
-                        </button>
-                    </nav>
+                    <div id="tenant-menu-admin">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-6">Quyền lực
+                            tối cao</p>
+                        <nav class="space-y-1">
+                            <button onclick="switchView('revoke')" id="nav-revoke"
+                                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                                <i class="fa-solid fa-ban w-5 text-center text-amber-500"></i><span
+                                    class="text-sm font-medium">Thu hồi chứng chỉ</span>
+                            </button>
+                            <button onclick="switchView('treasury')" id="nav-treasury"
+                                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                                <i class="fa-solid fa-money-bill-transfer w-5 text-center text-amber-500"></i><span
+                                    class="text-sm font-medium">Đổi tài khoản quỹ</span>
+                            </button>
+                        </nav>
+                    </div>
+
+                    <div id="tenant-menu-treasury-note" class="hidden bg-slate-800/60 border border-slate-700 rounded-xl p-4 text-xs text-slate-400">
+                        <i class="fa-solid fa-circle-info mr-1"></i> Ví Treasury chỉ nhận tiền quỹ, không có thao tác quản trị riêng — xem thông tin vai trò tại Hồ Sơ Cá Nhân.
+                    </div>
                 </div>
 
                 <!-- MENU: PROTOCOL ADMIN -->
@@ -1554,7 +1565,12 @@
 
         // Gợi ý: khi render account-name, đồng thời set avatar là chữ cái đầu
         function renderAccountAvatar(name) {
-            const initials = name ? name.trim().split(' ').slice(-2).map(w => w[0]).join('').toUpperCase() : '?';
+            // Governance wallet labels look like "Tên Tổ Chức — Admin" — drop the " — Role" suffix
+            // first, otherwise the em dash gets treated as its own "word" and taking the last two
+            // words picks up "—" + the role name instead of anything from the actual name.
+            const base = (name || '').split(' — ')[0].trim();
+            const words = base.split(/\s+/).filter(w => /[a-zA-ZÀ-ỹ]/.test(w));
+            const initials = words.length ? words.slice(-2).map(w => w[0]).join('').toUpperCase() : '?';
             document.getElementById('account-avatar').textContent = initials;
         }
     </script>
