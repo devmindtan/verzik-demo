@@ -88,6 +88,17 @@ function openConnectModal() {
 }
 function closeConnectModal() { document.getElementById('connect-gate').classList.add('hidden'); closeModalFocus(); }
 
+// Shared "detail" modal shell — openOperatorDetail()/openTenantDetail() each build their own body.
+function openDetailModal(title, subtitle, bodyHtml) {
+    document.getElementById('detail-modal-title').innerText = title;
+    document.getElementById('detail-modal-subtitle').innerText = subtitle;
+    document.getElementById('detail-modal-body').innerHTML = bodyHtml;
+    const modal = document.getElementById('detail-modal');
+    modal.classList.remove('hidden');
+    openModalFocus(modal);
+}
+function closeDetailModal() { document.getElementById('detail-modal').classList.add('hidden'); closeModalFocus(); }
+
 function connectWallet(walletId) {
     connectedWallet = allSystemWallets().find(w => w.id === walletId);
     closeConnectModal();
@@ -246,6 +257,12 @@ document.addEventListener('keydown', e => {
         else if (e.key === 'ArrowRight') { e.preventDefault(); ipfsNextPage(); }
         else if (e.key === 'Escape') { closeIpfsViewer(); }
         else if (e.key === 'Tab') { trapModalTab(ipfsModal, e); }
+        return;
+    }
+    const detailModal = document.getElementById('detail-modal');
+    if (!detailModal.classList.contains('hidden')) {
+        if (e.key === 'Escape') { closeDetailModal(); }
+        else if (e.key === 'Tab') { trapModalTab(detailModal, e); }
         return;
     }
     const confirmModal = document.getElementById('confirm-modal');
@@ -660,27 +677,93 @@ function renderAccount() {
 // Built entirely from data already tied to this operator (no separate per-wallet event log
 // exists in this demo's data model) — governance-only/guest wallets have nothing derivable, so
 // they correctly fall through to the empty state.
-function renderAccountActivity(op) {
+function buildOperatorActivityEvents(op) {
     const events = [];
-    if (op) {
-        DATA.documents.filter(d => d.issuer === op.name).forEach(d => events.push({
-            icon: 'fa-file-signature', color: 'emerald', time: d.issuedAt,
-            text: `Phát hành chứng chỉ <span class="font-bold">${escapeHtml(d.title)}</span> cho ${escapeHtml(d.owner)}.`
-        }));
-        DATA.documents.filter(d => d.owner === op.name).forEach(d => events.push({
-            icon: d.status === 'revoked' ? 'fa-ban' : 'fa-award', color: d.status === 'revoked' ? 'red' : 'blue', time: d.issuedAt,
-            text: d.status === 'revoked' ? `Chứng chỉ <span class="font-bold">${escapeHtml(d.title)}</span> đã bị thu hồi.` : `Nhận chứng chỉ <span class="font-bold">${escapeHtml(d.title)}</span> từ ${escapeHtml(d.tenantName)}.`
-        }));
-        DATA.recoveryAliases.filter(a => a.currentOperatorId === op.id).forEach(a => events.push({
-            icon: 'fa-life-ring', color: 'amber', time: a.recoveredAt,
-            text: `Khôi phục ví thành công tại ${escapeHtml(a.tenantName)} (${escapeHtml(a.reason)}).`
-        }));
-    }
+    if (!op) return events;
+    DATA.documents.filter(d => d.issuer === op.name).forEach(d => events.push({
+        icon: 'fa-file-signature', color: 'emerald', time: d.issuedAt,
+        text: `Phát hành chứng chỉ <span class="font-bold">${escapeHtml(d.title)}</span> cho ${escapeHtml(d.owner)}.`
+    }));
+    DATA.documents.filter(d => d.owner === op.name).forEach(d => events.push({
+        icon: d.status === 'revoked' ? 'fa-ban' : 'fa-award', color: d.status === 'revoked' ? 'red' : 'blue', time: d.issuedAt,
+        text: d.status === 'revoked' ? `Chứng chỉ <span class="font-bold">${escapeHtml(d.title)}</span> đã bị thu hồi.` : `Nhận chứng chỉ <span class="font-bold">${escapeHtml(d.title)}</span> từ ${escapeHtml(d.tenantName)}.`
+    }));
+    DATA.recoveryAliases.filter(a => a.currentOperatorId === op.id).forEach(a => events.push({
+        icon: 'fa-life-ring', color: 'amber', time: a.recoveredAt,
+        text: `Khôi phục ví thành công tại ${escapeHtml(a.tenantName)} (${escapeHtml(a.reason)}).`
+    }));
+    return events;
+}
+
+function renderAccountActivity(op) {
+    const events = buildOperatorActivityEvents(op);
     const { rows: shown, loadMoreDiv } = applyListControls(events, 'account-activity', `renderAccountActivity(me())`, {});
     document.getElementById('account-activity-list').innerHTML = shown.map(e =>
         `<div class="flex gap-4"><div class="w-8 h-8 rounded-full bg-${e.color}-100 text-${e.color}-600 flex items-center justify-center shrink-0"><i class="fa-solid ${e.icon} text-xs"></i></div><div><p class="text-sm font-medium text-slate-700">${e.text}</p><p class="text-xs text-slate-400 mt-1">${e.time}</p></div></div>`
     ).join('') + loadMoreDiv;
     document.getElementById('account-activity-empty').classList.toggle('hidden', events.length > 0);
+}
+
+function activityEventRowHtml(e) {
+    return `<div class="flex gap-3"><div class="w-7 h-7 rounded-full bg-${e.color}-100 text-${e.color}-600 flex items-center justify-center shrink-0"><i class="fa-solid ${e.icon} text-xs"></i></div><div class="min-w-0"><p class="text-sm font-medium text-slate-700">${e.text}</p><p class="text-xs text-slate-400 mt-0.5">${e.time}</p></div></div>`;
+}
+
+// Read-only lookup for managers who need an operator's full picture before approving/slashing/
+// recovering/whitelisting — that information previously only existed on the wallet's own "Hồ
+// Sơ Cá Nhân" page (renderAccount), which nobody else could see.
+function openOperatorDetail(operatorId) {
+    const op = DATA.operators.find(o => o.id === operatorId);
+    if (!op) return;
+    const tenant = DATA.tenants.find(t => t.id === op.tenantId);
+    const docsIssued = DATA.documents.filter(d => d.issuer === op.name);
+    const docsOwned = DATA.documents.filter(d => d.owner === op.name);
+    const delegate = op.recoveryDelegateId ? DATA.operators.find(o => o.id === op.recoveryDelegateId) : null;
+    const events = buildOperatorActivityEvents(op).slice(0, 5);
+
+    const body = `
+        <div class="flex items-center gap-3 mb-5">
+            <span class="px-2 py-1 rounded text-xs font-bold ${op.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${op.isActive ? 'HOẠT ĐỘNG' : 'TẠM NGƯNG'}</span>
+            <span class="font-mono text-xs text-slate-400 break-all">${escapeHtml(op.address)}</span>${copyBtnHtml(op.address)}
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-5 text-sm">
+            <div class="bg-slate-50 rounded-lg p-3"><p class="text-xs text-slate-400 mb-1">Tiền cọc</p><p class="font-bold text-slate-800">${fmtEth(op.stakeEth)} ETH</p></div>
+            <div class="bg-slate-50 rounded-lg p-3"><p class="text-xs text-slate-400 mb-1">Chứng từ phát hành / sở hữu</p><p class="font-bold text-slate-800">${docsIssued.length} / ${docsOwned.length}</p></div>
+        </div>
+        ${op.bio ? `<div class="mb-4"><p class="text-xs text-slate-400 mb-1">Giới thiệu</p><p class="text-sm text-slate-600">${escapeHtml(op.bio)}</p></div>` : ''}
+        ${op.flaggedNote ? `<div class="mb-4 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-600"><i class="fa-solid fa-flag mr-1"></i>${escapeHtml(op.flaggedNote)}</div>` : ''}
+        <p class="text-sm text-slate-500 mb-5">Ví dự phòng: ${delegate ? escapeHtml(delegate.name) : (op.recoveryDelegateId ? escapeHtml(op.recoveryDelegateId) : 'Chưa thiết lập')}</p>
+        <p class="text-xs font-bold text-slate-400 uppercase mb-3">Hoạt động gần đây</p>
+        <div class="space-y-3">${events.length ? events.map(activityEventRowHtml).join('') : '<p class="text-sm text-slate-400">Chưa có hoạt động nào.</p>'}</div>
+    `;
+    openDetailModal(op.name, tenant ? tenant.name : '', body);
+}
+
+// Read-only lookup for the Protocol Admin before suspending/restoring a tenant — the "Danh Sách
+// Doanh Nghiệp" table only ever showed name + status, never the governance addresses or scale.
+function openTenantDetail(tenantId) {
+    const t = DATA.tenants.find(x => x.id === tenantId);
+    if (!t) return;
+    const operators = DATA.operators.filter(o => o.tenantId === t.id && !o.recovered);
+    const activeOperators = operators.filter(o => o.isActive);
+    const docs = DATA.documents.filter(d => d.tenantId === t.id);
+    const validDocs = docs.filter(d => d.status === 'valid');
+
+    const body = `
+        <div class="mb-5"><span class="px-2 py-1 rounded text-xs font-bold ${t.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">${t.isActive ? 'ACTIVE' : 'SUSPENDED'}</span></div>
+        <div class="space-y-2 mb-5 text-sm">
+            <div class="flex justify-between items-center gap-2"><span class="text-slate-400 shrink-0">Admin</span><span class="font-mono text-xs break-all text-right">${escapeHtml(t.admin)}${copyBtnHtml(t.admin)}</span></div>
+            <div class="flex justify-between items-center gap-2"><span class="text-slate-400 shrink-0">QL Vận hành</span><span class="font-mono text-xs break-all text-right">${escapeHtml(t.operatorManager)}${copyBtnHtml(t.operatorManager)}</span></div>
+            <div class="flex justify-between items-center gap-2"><span class="text-slate-400 shrink-0">Treasury</span><span class="font-mono text-xs break-all text-right">${escapeHtml(t.treasury)}${copyBtnHtml(t.treasury)}</span></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="bg-slate-50 rounded-lg p-3"><p class="text-xs text-slate-400 mb-1">Mức cọc tối thiểu</p><p class="font-bold text-slate-800">${fmtEth(t.minStakeEth)} ETH</p></div>
+            <div class="bg-slate-50 rounded-lg p-3"><p class="text-xs text-slate-400 mb-1">Cooldown rút cọc</p><p class="font-bold text-slate-800">${t.unstakeCooldownHours} giờ</p></div>
+            <div class="bg-slate-50 rounded-lg p-3"><p class="text-xs text-slate-400 mb-1">Tổng cọc</p><p class="font-bold text-slate-800">${fmtEth(t.stakeTotalEth)} ETH</p></div>
+            <div class="bg-slate-50 rounded-lg p-3"><p class="text-xs text-slate-400 mb-1">Nhân sự hoạt động</p><p class="font-bold text-slate-800">${activeOperators.length} / ${operators.length}</p></div>
+            <div class="bg-slate-50 rounded-lg p-3 col-span-2"><p class="text-xs text-slate-400 mb-1">Chứng từ còn hiệu lực</p><p class="font-bold text-slate-800">${validDocs.length} / ${docs.length}</p></div>
+        </div>
+    `;
+    openDetailModal(t.name, t.id, body);
 }
 
 // ================= VERIFY (public) =================
@@ -1253,7 +1336,7 @@ function renderHr() {
         <tr class="border-b border-slate-100 hover:bg-slate-50">
             <td class="p-4"><p class="font-bold text-slate-800 text-sm break-words">${op.name}</p><p class="flex items-center gap-1 text-xs font-mono text-slate-400 mt-0.5"><span class="break-all">${op.address}</span>${copyBtnHtml(op.address)}</p>${op.flaggedNote ? `<p class="text-xs text-amber-600 mt-0.5">${op.flaggedNote}</p>` : ''}</td>
             <td class="p-4 text-sm font-bold text-slate-700">${fmtEth(op.stakeEth)} ETH</td>
-            <td class="p-4"><button onclick="toggleHrActive(this, '${op.id}')" class="${op.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} px-3 py-1 rounded text-xs font-bold">${op.isActive ? 'HOẠT ĐỘNG' : 'BẬT HĐ'}</button></td>
+            <td class="p-4"><div class="flex items-center gap-2"><button onclick="openOperatorDetail('${op.id}')" class="w-8 h-8 shrink-0 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-blue-600 transition-colors" title="Xem chi tiết" aria-label="Xem chi tiết ${escapeHtml(op.name)}"><i class="fa-solid fa-eye text-xs"></i></button><button onclick="toggleHrActive(this, '${op.id}')" class="${op.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} px-3 py-1 rounded text-xs font-bold">${op.isActive ? 'HOẠT ĐỘNG' : 'BẬT HĐ'}</button></div></td>
         </tr>`).join('') + loadMoreRow;
 }
 
@@ -1284,7 +1367,8 @@ function renderSlash() {
             <td class="p-4"><span class="font-bold" id="op-${op.id}-stake">${fmtEth(op.stakeEth)} ETH</span></td>
             <td class="p-4" id="op-${op.id}-status"><span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">HOẠT ĐỘNG</span></td>
             <td class="p-4 text-right" id="op-${op.id}-actions">
-                <div class="flex justify-end relative">
+                <div class="flex justify-end items-center gap-2 relative">
+                    <button onclick="openOperatorDetail('${op.id}')" class="w-8 h-8 shrink-0 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-blue-600 transition-colors" title="Xem chi tiết" aria-label="Xem chi tiết ${escapeHtml(op.name)}"><i class="fa-solid fa-eye text-xs"></i></button>
                     <button onclick="toggleMenu('slash-menu-${op.id}')" class="bg-slate-100 px-3 py-2 rounded-lg text-sm"><i class="fa-solid fa-gavel"></i> Phạt</button>
                     <div id="slash-menu-${op.id}" class="hidden absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-xl z-20 text-left overflow-hidden">
                         <button onclick="confirmSlash('${op.id}','hard')" class="w-full text-left px-4 py-3 hover:bg-red-50 text-sm text-red-600 font-bold border-b border-slate-100">Hard-slash: Tịch thu 100%</button>
@@ -1443,7 +1527,7 @@ function renderWhitelistTable() {
     document.getElementById('whitelist-table-body').innerHTML = (!total ? emptyStateRow(3, 'fa-magnifying-glass', 'Không tìm thấy nhân viên phù hợp.') : rows.map(op => {
         const wl = whitelistEntry(docType, op.id);
         return `<tr class="border-b border-slate-100">
-            <td class="p-3 text-sm font-medium break-words">${op.name}</td>
+            <td class="p-3 text-sm font-medium break-words"><button onclick="openOperatorDetail('${op.id}')" class="hover:text-blue-600 hover:underline text-left" title="Xem chi tiết">${escapeHtml(op.name)}</button></td>
             <td class="p-3 text-center"><input type="checkbox" ${wl ? 'checked' : ''} onchange="toggleCoSignWhitelist(${docType}, '${op.id}', this.checked)" class="w-4 h-4"></td>
             <td class="p-3"><select onchange="setCoSignRole(${docType}, '${op.id}', this.value)" ${wl ? '' : 'disabled'} class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-sm outline-none">
                 ${DATA.roleCatalog.map(r => `<option value="${r.roleId}" ${wl && wl.roleId === r.roleId ? 'selected' : ''}>${r.label}</option>`).join('')}
@@ -1557,6 +1641,15 @@ function renderRevokePending(docId) {
 }
 
 // ================= PLATFORM (protocol admin) =================
+function switchPlatformTab(tab) {
+    ['applications', 'create', 'list'].forEach(t => {
+        document.getElementById('platform-tab-' + t).classList.toggle('hidden', t !== tab);
+        document.getElementById('platform-tab-btn-' + t).className = t === tab
+            ? 'px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-white whitespace-nowrap'
+            : 'px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap';
+    });
+}
+
 function renderPlatform() {
     clearFieldErrors(['new-tenant-id', 'new-tenant-name', 'new-tenant-admin', 'new-tenant-opmanager', 'new-tenant-treasury', 'new-tenant-minstake', 'new-tenant-cooldown']);
     showFormError('platform-form-errors', []);
@@ -1587,9 +1680,12 @@ function renderPlatform() {
         <tr class="border-b border-slate-100 ${t.isActive ? '' : 'bg-red-50'}">
             <td class="p-4 font-bold text-blue-800 break-words">${escapeHtml(t.name)}</td>
             <td class="p-4">${t.isActive ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">ACTIVE</span>' : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">SUSPENDED</span>'}</td>
-            <td class="p-4 text-right">${t.isActive
-                ? `<button onclick="toggleTenantStatus(this, '${t.id}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg text-sm flex items-center gap-2 ml-auto transition-colors"><i class="fa-solid fa-power-off"></i> Đình chỉ</button>`
-                : `<button onclick="toggleTenantStatus(this, '${t.id}')" class="border border-emerald-200 text-emerald-600 hover:bg-emerald-50 px-3 py-2 rounded-lg text-sm flex items-center gap-2 ml-auto transition-colors"><i class="fa-solid fa-play"></i> Khôi phục HĐ</button>`}</td>
+            <td class="p-4 text-right"><div class="flex justify-end items-center gap-2">
+                <button onclick="openTenantDetail('${t.id}')" class="w-9 h-9 shrink-0 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-blue-600 transition-colors" title="Xem chi tiết" aria-label="Xem chi tiết ${escapeHtml(t.name)}"><i class="fa-solid fa-eye text-xs"></i></button>
+                ${t.isActive
+                ? `<button onclick="toggleTenantStatus(this, '${t.id}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors"><i class="fa-solid fa-power-off"></i> Đình chỉ</button>`
+                : `<button onclick="toggleTenantStatus(this, '${t.id}')" class="border border-emerald-200 text-emerald-600 hover:bg-emerald-50 px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors"><i class="fa-solid fa-play"></i> Khôi phục HĐ</button>`}
+            </div></td>
         </tr>`).join('');
 }
 
@@ -1651,6 +1747,7 @@ function createTenant() {
         ['new-tenant-id', 'new-tenant-name', 'new-tenant-admin', 'new-tenant-opmanager', 'new-tenant-treasury'].forEach(elId => document.getElementById(elId).value = '');
         btn.innerHTML = `<i class="fa-solid fa-plus"></i> Khởi Tạo Tổ Chức`;
         renderPlatform();
+        switchPlatformTab('list');
         showToast("Thành công", `Đã khởi tạo tổ chức "${name}" trên chuỗi.`);
     }, 800);
 }
@@ -1785,6 +1882,7 @@ function renderEmergencyRecovery() {
         <div class="p-6 border-b border-slate-100 flex items-center justify-between gap-4">
             <div class="min-w-0"><p class="font-bold text-slate-800 break-words">${op.name}</p><p class="text-xs text-red-500 break-words">${op.flaggedNote || ''} — ${fmtEth(op.stakeEth)} ETH</p></div>
             <div class="flex gap-2">
+                <button onclick="openOperatorDetail('${op.id}')" class="w-9 h-9 shrink-0 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-blue-600 transition-colors" title="Xem chi tiết" aria-label="Xem chi tiết ${escapeHtml(op.name)}"><i class="fa-solid fa-eye text-xs"></i></button>
                 <input type="text" placeholder="Địa chỉ ví mới 0x..." class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
                 <button onclick="recoverByAdmin(this, '${op.id}')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-bold">Chỉ định ví mới</button>
             </div>

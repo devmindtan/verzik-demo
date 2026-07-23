@@ -1552,60 +1552,82 @@
                         thêm vai trò tenant nào (tránh vừa đá bóng vừa thổi còi).</p>
                 </div>
 
-                <div class="bg-white rounded-2xl shadow-sm border border-amber-200 overflow-hidden mb-6">
-                    <h3 class="font-bold text-slate-800 p-6 pb-3 flex items-center gap-2"><i
-                            class="fa-solid fa-inbox text-amber-500"></i> Yêu Cầu Đăng Ký Đang Chờ Duyệt</h3>
-                    <div class="px-6 pb-3"><input type="text" id="tenant-applications-search"
-                            oninput="listLimits['tenant-applications']=10;debounce('tenant-applications', renderPlatform)"
-                            placeholder="Tìm theo tên tổ chức..."
-                            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></div>
-                    <div id="tenant-applications-list"></div>
+                <div
+                    class="inline-flex flex-wrap gap-1 bg-white border border-slate-200 rounded-xl p-1 mb-6 overflow-x-auto max-w-full">
+                    <button onclick="switchPlatformTab('applications')" id="platform-tab-btn-applications"
+                        class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-white whitespace-nowrap">Yêu
+                        Cầu Đăng Ký</button>
+                    <button onclick="switchPlatformTab('create')" id="platform-tab-btn-create"
+                        class="px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap">Tạo
+                        Tổ Chức Mới</button>
+                    <button onclick="switchPlatformTab('list')" id="platform-tab-btn-list"
+                        class="px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap">Danh
+                        Sách Doanh Nghiệp</button>
                 </div>
 
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
-                    <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i
-                            class="fa-solid fa-plus text-purple-500"></i> Tạo Tổ Chức Mới</h3>
-                    <div id="platform-form-errors"></div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                        <input type="text" id="new-tenant-id" placeholder="Mã tổ chức (vd: hcmut)"
-                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
-                        <div class="relative sm:col-span-2 lg:col-span-2">
-                            <input type="text" id="new-tenant-name" placeholder=" "
-                                class="peer w-full border border-slate-300 rounded-lg px-3 pt-5 pb-2 text-sm outline-none focus:border-purple-500">
-                            <label for="new-tenant-name"
-                                class="absolute left-3 top-2 text-xs text-slate-500 transition-all pointer-events-none peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-xs peer-focus:text-purple-600">Tên
-                                doanh nghiệp</label>
-                        </div>
-                        <input type="text" id="new-tenant-admin" placeholder="Ví Tenant Admin 0x..."
-                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
-                        <input type="text" id="new-tenant-opmanager" placeholder="Ví Operator Manager 0x..."
-                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
-                        <input type="text" id="new-tenant-treasury" placeholder="Ví Treasury 0x..."
-                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
-                        <input type="number" id="new-tenant-minstake" placeholder="Mức cọc tối thiểu (ETH)" min="0" step="0.1"
-                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
-                        <input type="number" id="new-tenant-cooldown" placeholder="Thời gian chờ rút cọc (giờ)" min="0"
-                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                <!-- TAB: YÊU CẦU ĐĂNG KÝ -->
+                <div id="platform-tab-applications">
+                    <div class="bg-white rounded-2xl shadow-sm border border-amber-200 overflow-hidden">
+                        <h3 class="font-bold text-slate-800 p-6 pb-3 flex items-center gap-2"><i
+                                class="fa-solid fa-inbox text-amber-500"></i> Yêu Cầu Đăng Ký Đang Chờ Duyệt</h3>
+                        <div class="px-6 pb-3"><input type="text" id="tenant-applications-search"
+                                oninput="listLimits['tenant-applications']=10;debounce('tenant-applications', renderPlatform)"
+                                placeholder="Tìm theo tên tổ chức..."
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></div>
+                        <div id="tenant-applications-list"></div>
                     </div>
-                    <p class="text-xs text-slate-400 mb-4">Admin / Operator Manager / Treasury bắt buộc phải là 3 địa
-                        chỉ khác nhau — hệ thống tự động từ chối nếu trùng.</p>
-                    <button onclick="createTenant()" id="btn-create-tenant"
-                        class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-medium"><i
-                            class="fa-solid fa-plus"></i> Khởi Tạo Tổ Chức</button>
                 </div>
 
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="table-scroll">
-                        <table class="w-full text-left border-collapse">
-                            <thead class="bg-slate-50 border-b border-slate-200">
-                                <tr class="text-xs uppercase text-slate-500">
-                                    <th class="p-4">Tổ chức</th>
-                                    <th class="p-4">Trạng thái</th>
-                                    <th class="p-4 text-right">Điều khiển</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tenant-table-body"></tbody>
-                        </table>
+                <!-- TAB: TẠO TỔ CHỨC MỚI -->
+                <div id="platform-tab-create" class="hidden">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i
+                                class="fa-solid fa-plus text-purple-500"></i> Tạo Tổ Chức Mới</h3>
+                        <div id="platform-form-errors"></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                            <input type="text" id="new-tenant-id" placeholder="Mã tổ chức (vd: hcmut)"
+                                class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                            <div class="relative sm:col-span-2 lg:col-span-2">
+                                <input type="text" id="new-tenant-name" placeholder=" "
+                                    class="peer w-full border border-slate-300 rounded-lg px-3 pt-5 pb-2 text-sm outline-none focus:border-purple-500">
+                                <label for="new-tenant-name"
+                                    class="absolute left-3 top-2 text-xs text-slate-500 transition-all pointer-events-none peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-xs peer-focus:text-purple-600">Tên
+                                    doanh nghiệp</label>
+                            </div>
+                            <input type="text" id="new-tenant-admin" placeholder="Ví Tenant Admin 0x..."
+                                class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
+                            <input type="text" id="new-tenant-opmanager" placeholder="Ví Operator Manager 0x..."
+                                class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
+                            <input type="text" id="new-tenant-treasury" placeholder="Ví Treasury 0x..."
+                                class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
+                            <input type="number" id="new-tenant-minstake" placeholder="Mức cọc tối thiểu (ETH)" min="0" step="0.1"
+                                class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                            <input type="number" id="new-tenant-cooldown" placeholder="Thời gian chờ rút cọc (giờ)" min="0"
+                                class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                        </div>
+                        <p class="text-xs text-slate-400 mb-4">Admin / Operator Manager / Treasury bắt buộc phải là 3 địa
+                            chỉ khác nhau — hệ thống tự động từ chối nếu trùng.</p>
+                        <button onclick="createTenant()" id="btn-create-tenant"
+                            class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-medium"><i
+                                class="fa-solid fa-plus"></i> Khởi Tạo Tổ Chức</button>
+                    </div>
+                </div>
+
+                <!-- TAB: DANH SÁCH DOANH NGHIỆP -->
+                <div id="platform-tab-list" class="hidden">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="table-scroll">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-50 border-b border-slate-200">
+                                    <tr class="text-xs uppercase text-slate-500">
+                                        <th class="p-4">Tổ chức</th>
+                                        <th class="p-4">Trạng thái</th>
+                                        <th class="p-4 text-right">Điều khiển</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tenant-table-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -1674,6 +1696,24 @@
                                     class="fa-solid fa-chevron-right"></i></button>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Entity Detail Modal (Operator / Tenant) — read-only info the managing role needs
+                 before approving/slashing/recovering/whitelisting; shared by both entity types. -->
+            <div id="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title"
+                class="hidden fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-3 sm:p-6">
+                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 flex items-start justify-between shrink-0">
+                        <div class="min-w-0">
+                            <h3 class="font-bold text-lg text-slate-800 break-words" id="detail-modal-title"></h3>
+                            <p class="text-xs text-slate-400 mt-1 break-words" id="detail-modal-subtitle"></p>
+                        </div>
+                        <button onclick="closeDetailModal()" aria-label="Đóng"
+                            class="text-slate-400 hover:text-slate-700 text-xl leading-none shrink-0 ml-3"><i
+                                class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="p-6 overflow-y-auto flex-1" id="detail-modal-body"></div>
                 </div>
             </div>
         </main>
