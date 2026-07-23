@@ -54,15 +54,39 @@ async function init() {
     switchRole('public');
 }
 
+// Shared modal focus management: remembers what had focus before a modal opened so it can be
+// restored on close, and focuses the first focusable element inside the modal on open.
+let modalReturnFocusEl = null;
+function focusablesIn(modalEl) {
+    return modalEl.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+}
+function openModalFocus(modalEl) {
+    modalReturnFocusEl = document.activeElement;
+    focusablesIn(modalEl)[0]?.focus();
+}
+function closeModalFocus() {
+    modalReturnFocusEl?.focus();
+    modalReturnFocusEl = null;
+}
+function trapModalTab(modalEl, e) {
+    const items = focusablesIn(modalEl);
+    if (!items.length) return;
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
+
 function openConnectModal() {
     document.getElementById('connect-wallet-list').innerHTML = allSystemWallets().map(w => `
         <button onclick="connectWallet('${w.id}')" class="w-full text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl p-3 transition-colors">
             <p class="text-sm font-medium text-white truncate" title="${w.label}">${w.label}</p>
             <p class="text-xs font-mono text-slate-400 truncate">${w.address}</p>
         </button>`).join('');
-    document.getElementById('connect-gate').classList.remove('hidden');
+    const modal = document.getElementById('connect-gate');
+    modal.classList.remove('hidden');
+    openModalFocus(modal);
 }
-function closeConnectModal() { document.getElementById('connect-gate').classList.add('hidden'); }
+function closeConnectModal() { document.getElementById('connect-gate').classList.add('hidden'); closeModalFocus(); }
 
 function connectWallet(walletId) {
     connectedWallet = allSystemWallets().find(w => w.id === walletId);
@@ -174,12 +198,15 @@ function openIpfsViewer(docId) {
     ipfsViewerDocId = docId;
     ipfsViewerPage = 0;
     renderIpfsViewer();
-    document.getElementById('ipfs-viewer-modal').classList.remove('hidden');
+    const modal = document.getElementById('ipfs-viewer-modal');
+    modal.classList.remove('hidden');
+    openModalFocus(modal);
 }
 
 function closeIpfsViewer() {
     document.getElementById('ipfs-viewer-modal').classList.add('hidden');
     ipfsViewerDocId = null;
+    closeModalFocus();
 }
 
 function renderIpfsViewer() {
@@ -206,17 +233,27 @@ function ipfsNextPage() {
     if (doc && ipfsViewerPage < doc.content.pages.length - 1) { ipfsViewerPage += 1; renderIpfsViewer(); }
 }
 
-// Arrow keys page through the open IPFS viewer; Escape closes whichever modal is open.
+// Arrow keys page through the open IPFS viewer; Escape closes whichever modal is open;
+// Tab is trapped inside whichever modal is open so focus can't leak to the page behind it.
 document.addEventListener('keydown', e => {
-    if (ipfsViewerDocId !== null && !document.getElementById('ipfs-viewer-modal').classList.contains('hidden')) {
+    const ipfsModal = document.getElementById('ipfs-viewer-modal');
+    if (ipfsViewerDocId !== null && !ipfsModal.classList.contains('hidden')) {
         if (e.key === 'ArrowLeft') { e.preventDefault(); ipfsPrevPage(); }
         else if (e.key === 'ArrowRight') { e.preventDefault(); ipfsNextPage(); }
         else if (e.key === 'Escape') { closeIpfsViewer(); }
+        else if (e.key === 'Tab') { trapModalTab(ipfsModal, e); }
         return;
     }
-    if (e.key === 'Escape') {
-        if (!document.getElementById('confirm-modal').classList.contains('hidden')) closeConfirmModal();
-        else if (!document.getElementById('connect-gate').classList.contains('hidden')) closeConnectModal();
+    const confirmModal = document.getElementById('confirm-modal');
+    const connectModal = document.getElementById('connect-gate');
+    if (!confirmModal.classList.contains('hidden')) {
+        if (e.key === 'Escape') closeConfirmModal();
+        else if (e.key === 'Tab') trapModalTab(confirmModal, e);
+        return;
+    }
+    if (!connectModal.classList.contains('hidden')) {
+        if (e.key === 'Escape') closeConnectModal();
+        else if (e.key === 'Tab') trapModalTab(connectModal, e);
     }
 });
 
@@ -470,6 +507,7 @@ function askConfirm(title, message, onConfirm, acceptLabel = 'Xác nhận', requ
     const modal = document.getElementById('confirm-modal');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+    openModalFocus(modal);
     if (requireText) document.getElementById('confirm-modal-type-input').focus();
 }
 function checkConfirmTypedMatch() {
@@ -486,6 +524,7 @@ function closeConfirmModal() {
     modal.classList.remove('flex');
     confirmModalCallback = null;
     confirmModalRequireText = null;
+    closeModalFocus();
 }
 function confirmModalAccept() {
     if (document.getElementById('confirm-modal-accept').disabled) return;
@@ -511,7 +550,7 @@ function renderMyDocs() {
         const required = policy && policy.enabled ? policy.minSigners : 1;
         const qualified = valid && isDocQualified(d);
         const trust = valid ? (qualified ? `Đã Đồng Ký (${d.coSign.trustedCount}/${required})` : `Đang chờ (${d.coSign.trustedCount}/${required})`) : '';
-        return `<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col transition-all hover:shadow-md cursor-pointer ${valid ? '' : 'bg-slate-50 opacity-75'}">
+        return `<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col transition-all hover:shadow-md ${valid ? '' : 'bg-slate-50 opacity-75'}">
             <div class="flex justify-between items-start mb-4">
                 <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl shadow-inner"><i class="fa-solid fa-graduation-cap"></i></div>
                 ${valid ? `<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><i class="fa-solid fa-check-circle"></i> HỢP LỆ</span>`
@@ -605,6 +644,11 @@ function renderAccount() {
     // updateOperatorMetadata requires an active operator — only show the editor then.
     document.getElementById('account-bio-card').classList.toggle('hidden', !op?.isActive);
     if (op?.isActive) document.getElementById('profile-bio-input').value = op.bio || '';
+
+    // flaggedNote was previously only visible to managers reviewing HR/Slash tables — the
+    // operator themselves had no way to see why they might be under scrutiny.
+    document.getElementById('account-flagged-warning').classList.toggle('hidden', !op?.flaggedNote);
+    if (op?.flaggedNote) document.getElementById('account-flagged-warning-text').innerText = op.flaggedNote;
 }
 
 // Built entirely from data already tied to this operator (no separate per-wallet event log
@@ -847,7 +891,12 @@ function renderStake() {
     const topupDisabled = !op.isActive;
     document.getElementById('btn-topup').disabled = topupDisabled;
     document.getElementById('btn-topup').classList.toggle('opacity-50', topupDisabled);
+    document.getElementById('topup-input').disabled = topupDisabled;
+    document.getElementById('topup-input').classList.toggle('bg-slate-100', topupDisabled);
     document.getElementById('topup-disabled-note').classList.toggle('hidden', !topupDisabled);
+
+    document.getElementById('stake-flagged-warning').classList.toggle('hidden', !op.flaggedNote);
+    if (op.flaggedNote) document.getElementById('stake-flagged-warning-text').innerText = op.flaggedNote;
 }
 
 function confirmRequestUnstake() {
@@ -1431,7 +1480,8 @@ function confirmRevoke(docId) {
         "Xác nhận thu hồi chứng chỉ",
         `Chứng chỉ "${doc.id}" của ${doc.owner} sẽ vĩnh viễn mất hiệu lực và không thể khôi phục.`,
         () => executeRevoke(docId),
-        "Xác nhận thu hồi"
+        "Xác nhận thu hồi",
+        doc.id
     );
 }
 

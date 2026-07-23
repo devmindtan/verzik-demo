@@ -132,6 +132,15 @@
         /* Role switcher: horizontal scroll on small screens instead of wrapping/breaking layout */
         #role-switcher-scroll {
             -webkit-overflow-scrolling: touch;
+            background:
+                linear-gradient(to right, #f1f5f9 30%, rgba(241,245,249,0)),
+                linear-gradient(to right, rgba(241,245,249,0), #f1f5f9 70%) 100% 0,
+                linear-gradient(to right, rgba(0,0,0,.12), rgba(0,0,0,0)),
+                linear-gradient(to left, rgba(0,0,0,.12), rgba(0,0,0,0)) 100% 0;
+            background-repeat: no-repeat;
+            background-color: #f1f5f9;
+            background-size: 24px 100%, 24px 100%, 8px 100%, 8px 100%;
+            background-attachment: local, local, scroll, scroll;
         }
 
         #role-switcher-scroll::-webkit-scrollbar {
@@ -142,6 +151,16 @@
         .table-scroll {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
+            /* Edge fade + shadow scroll-affordance hint, pure CSS: gradients scroll with content, shadows stay fixed */
+            background:
+                linear-gradient(to right, white 30%, rgba(255,255,255,0)),
+                linear-gradient(to right, rgba(255,255,255,0), white 70%) 100% 0,
+                linear-gradient(to right, rgba(0,0,0,.12), rgba(0,0,0,0)),
+                linear-gradient(to left, rgba(0,0,0,.12), rgba(0,0,0,0)) 100% 0;
+            background-repeat: no-repeat;
+            background-color: white;
+            background-size: 32px 100%, 32px 100%, 10px 100%, 10px 100%;
+            background-attachment: local, local, scroll, scroll;
         }
 
         /* Tables with many columns (>4): stack each <td> into a card instead of scrolling
@@ -202,7 +221,7 @@
 <body class="h-screen flex flex-col overflow-hidden text-slate-800">
 
     <!-- ================= WALLET CONNECT MODAL (không bắt buộc — chỉ hiện khi cần) ================= -->
-    <div id="connect-gate" class="hidden fixed inset-0 bg-slate-900/70 z-[100] items-center justify-center p-6">
+    <div id="connect-gate" role="dialog" aria-modal="true" aria-label="Kết nối ví" class="hidden fixed inset-0 bg-slate-900/70 z-[100] items-center justify-center p-6">
         <div class="max-w-md w-full text-center bg-slate-900 rounded-2xl p-8 relative max-h-[90vh] flex flex-col">
             <button onclick="closeConnectModal()" class="absolute top-4 right-4 text-slate-500 hover:text-white"
                 aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button>
@@ -587,6 +606,9 @@
 
                 <!-- TAB: TỔNG QUAN -->
                 <div id="account-tab-overview">
+                    <div id="account-flagged-warning" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-6 text-sm flex items-start gap-2">
+                        <i class="fa-solid fa-flag mt-0.5"></i><span id="account-flagged-warning-text"></span>
+                    </div>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
                         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
                             <p class="text-xs font-bold text-slate-400 uppercase mb-1">Tiền cọc</p>
@@ -875,7 +897,7 @@
                                     class="fa-solid fa-users text-purple-500"></i> Danh Sách Nhân Sự Theo Doanh Nghiệp
                             </h3>
                             <select id="explorer-operator-tenant-select"
-                                onchange="listLimits['explorer-operator']=10;renderExplorerOperators(this.value)"
+                                onchange="listLimits['explorer-operator']=10;document.getElementById('explorer-operator-search').value='';renderExplorerOperators(this.value)"
                                 class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none select-custom"></select>
                         </div>
                         <p class="text-sm text-slate-500 mb-4">Dữ liệu đọc công khai — bất kỳ ai (kể cả đối tác tuyển
@@ -985,10 +1007,13 @@
                     <h2 class="text-2xl font-bold text-slate-800">Tài Sản Đảm Bảo Của Bạn</h2>
                     <p class="text-slate-500">Minh bạch 100%. Công ty không có quyền giam giữ trái phép.</p>
                 </div>
+                <div id="stake-flagged-warning" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-4 text-sm flex items-start gap-2 text-left">
+                    <i class="fa-solid fa-flag mt-0.5"></i><span id="stake-flagged-warning-text"></span>
+                </div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-8 text-center">
                     <p class="text-4xl font-bold text-slate-800 mb-6" id="stake-amount">0.00 ETH</p>
                     <div class="flex flex-col sm:flex-row gap-3 mb-4">
-                        <input type="number" id="topup-input" placeholder="Số ETH muốn nạp thêm"
+                        <input type="number" id="topup-input" placeholder="Số ETH muốn nạp thêm" min="0" step="0.1"
                             class="flex-1 border border-slate-300 rounded-xl px-4 py-3 outline-none">
                         <button onclick="topUpStake()" id="btn-topup"
                             class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-colors shrink-0"><i
@@ -1084,7 +1109,7 @@
                     <select id="join-tenant-select" onchange="renderJoin()"
                         class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm mb-3 select-custom"></select>
                     <div class="relative mb-3">
-                        <input type="number" id="join-stake-input" placeholder=" "
+                        <input type="number" id="join-stake-input" placeholder=" " min="0" step="0.1"
                             class="peer w-full border border-slate-300 rounded-lg px-4 pt-5 pb-2 text-sm outline-none focus:border-blue-500">
                         <label for="join-stake-input"
                             class="absolute left-4 top-2 text-xs text-slate-500 transition-all pointer-events-none peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-xs peer-focus:text-blue-600">Số
@@ -1126,7 +1151,7 @@
                             class="border border-slate-300 rounded-lg px-4 py-2 text-sm font-mono">
                         <input type="text" id="apply-tenant-treasury" placeholder="Ví đề xuất làm Treasury 0x..."
                             class="border border-slate-300 rounded-lg px-4 py-2 text-sm font-mono">
-                        <input type="number" id="apply-tenant-minstake" placeholder="Đề xuất mức cọc tối thiểu (ETH)"
+                        <input type="number" id="apply-tenant-minstake" placeholder="Đề xuất mức cọc tối thiểu (ETH)" min="0" step="0.1"
                             class="border border-slate-300 rounded-lg px-4 py-2 text-sm">
                     </div>
                     <textarea id="apply-tenant-note" rows="2"
@@ -1228,6 +1253,14 @@
                     </div>
                     <div class="table-scroll">
                         <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr class="text-xs uppercase text-slate-500">
+                                    <th class="p-4">Nhân viên</th>
+                                    <th class="p-4">Tiền Cọc</th>
+                                    <th class="p-4">Trạng thái</th>
+                                    <th class="p-4 text-right">Xử phạt</th>
+                                </tr>
+                            </thead>
                             <tbody id="slash-table-body"></tbody>
                         </table>
                     </div>
@@ -1299,7 +1332,7 @@
                         </div>
                         <div class="flex flex-col sm:flex-row gap-3 sm:items-end border-t border-slate-100 pt-4">
                             <div class="flex-1"><label class="block text-xs font-medium text-slate-500 mb-1">Mã loại
-                                    chứng chỉ</label><input type="number" id="new-doctype-id"
+                                    chứng chỉ</label><input type="number" id="new-doctype-id" min="0"
                                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
                             <div class="flex-[3]"><label class="block text-xs font-medium text-slate-500 mb-1">Tên loại
                                     chứng chỉ</label><input type="text" id="new-doctype-label"
@@ -1360,13 +1393,13 @@
                         </div>
                         <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
                             <div class="flex-1"><label class="block text-xs font-medium text-slate-500 mb-1">Mã
-                                    lỗi</label><input type="number" id="penalty-code-input"
+                                    lỗi</label><input type="number" id="penalty-code-input" min="0"
                                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
                             <div class="flex-[3]"><label class="block text-xs font-medium text-slate-500 mb-1">Mô
                                     tả</label><input type="text" id="penalty-label-input"
                                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
                             <div class="flex-1"><label class="block text-xs font-medium text-slate-500 mb-1">%
-                                    Cọc</label><input type="number" id="penalty-bps-input"
+                                    Cọc</label><input type="number" id="penalty-bps-input" min="0" max="100"
                                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
                             <button onclick="addViolationPenalty()" id="btn-add-penalty"
                                 class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium shrink-0">Thêm
@@ -1398,6 +1431,13 @@
                     </div>
                     <div class="table-scroll">
                         <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr class="text-xs uppercase text-slate-500">
+                                    <th class="p-4">Mã Chứng Chỉ</th>
+                                    <th class="p-4">Trạng thái</th>
+                                    <th class="p-4 text-right">Thu hồi</th>
+                                </tr>
+                            </thead>
                             <tbody id="revoke-table-body"></tbody>
                         </table>
                     </div>
@@ -1480,9 +1520,9 @@
                             class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
                         <input type="text" id="new-tenant-treasury" placeholder="Ví Treasury 0x..."
                             class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
-                        <input type="number" id="new-tenant-minstake" placeholder="Mức cọc tối thiểu (ETH)"
+                        <input type="number" id="new-tenant-minstake" placeholder="Mức cọc tối thiểu (ETH)" min="0" step="0.1"
                             class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
-                        <input type="number" id="new-tenant-cooldown" placeholder="Thời gian chờ rút cọc (giờ)"
+                        <input type="number" id="new-tenant-cooldown" placeholder="Thời gian chờ rút cọc (giờ)" min="0"
                             class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
                     </div>
                     <p class="text-xs text-slate-400 mb-4">Admin / Operator Manager / Treasury bắt buộc phải là 3 địa
@@ -1513,7 +1553,7 @@
                 class="fixed bottom-6 right-6 z-50 flex flex-col-reverse gap-3 w-[calc(100%-3rem)] sm:w-80"></div>
 
             <!-- Generic confirmation modal for destructive actions (Slash / Revoke / Unstake) -->
-            <div id="confirm-modal" class="hidden fixed inset-0 bg-slate-900/60 z-[60] items-center justify-center p-6">
+            <div id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" class="hidden fixed inset-0 bg-slate-900/60 z-[60] items-center justify-center p-6">
                 <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
                     <div
                         class="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center text-xl mb-4">
@@ -1537,7 +1577,7 @@
             </div>
 
             <!-- IPFS Content Viewer Modal -->
-            <div id="ipfs-viewer-modal"
+            <div id="ipfs-viewer-modal" role="dialog" aria-modal="true" aria-labelledby="ipfs-viewer-title"
                 class="hidden fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-3 sm:p-6">
                 <div
                     class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
