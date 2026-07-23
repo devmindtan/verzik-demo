@@ -11,9 +11,29 @@
       "admin": "0xD11...GD01",
       "opManager": "0xD22...TP01",
       "treasury": "0xD33...KT01",
-      "minStakeEth": 2.0,
+      "minStakeEth": 2,
       "note": "Đã có giấy phép hoạt động giáo dục, mong muốn số hoá chứng chỉ khoá học tiếng Anh.",
       "submittedAt": "18/07/2026"
+    },
+    {
+      "id": "app-seed-2",
+      "name": "Học Viện Kỹ Năng Số HCM",
+      "admin": "0xK11G0001...2329",
+      "opManager": "0xK22T0001...2329",
+      "treasury": "0xK33K0001...2329",
+      "minStakeEth": 3,
+      "note": "Đơn vị đào tạo kỹ năng số cho doanh nghiệp vừa và nhỏ, mong muốn số hoá chứng chỉ hoàn thành khoá học.",
+      "submittedAt": "19/07/2026"
+    },
+    {
+      "id": "app-seed-3",
+      "name": "Trung Tâm Tin Học ĐH Cần Thơ",
+      "admin": "0xC11G0001...2329",
+      "opManager": "0xC22T0001...2329",
+      "treasury": "0xC33K0001...2329",
+      "minStakeEth": 2.5,
+      "note": "Trực thuộc trường đại học công lập, đã có kinh nghiệm vận hành hệ thống cấp chứng chỉ nội bộ.",
+      "submittedAt": "20/07/2026"
     }
   ],
   "tenants": [
@@ -24,9 +44,9 @@
       "operatorManager": "0xA22...TP01",
       "treasury": "0xA33...KT01",
       "isActive": true,
-      "minStakeEth": 3.0,
+      "minStakeEth": 3,
       "unstakeCooldownHours": 24,
-      "stakeTotalEth": 65.0
+      "stakeTotalEth": 107.7
     },
     {
       "id": "bku",
@@ -35,35 +55,560 @@
       "operatorManager": "0xB22...TP01",
       "treasury": "0xB33...KT01",
       "isActive": true,
-      "minStakeEth": 5.0,
+      "minStakeEth": 5,
       "unstakeCooldownHours": 48,
-      "stakeTotalEth": 120.0
+      "stakeTotalEth": 39.1
+    },
+    {
+      "id": "xyz",
+      "name": "Trung tâm Đào tạo XYZ",
+      "admin": "0xX11G0001...2329",
+      "operatorManager": "0xX22T0001...2329",
+      "treasury": "0xX33K0001...2329",
+      "isActive": true,
+      "minStakeEth": 2,
+      "unstakeCooldownHours": 12,
+      "stakeTotalEth": 19.9
+    },
+    {
+      "id": "hvbc",
+      "name": "Học Viện Blockchain Việt",
+      "admin": "0xH11G0001...2329",
+      "operatorManager": "0xH22T0001...2329",
+      "treasury": "0xH33K0001...2329",
+      "isActive": true,
+      "minStakeEth": 4,
+      "unstakeCooldownHours": 36,
+      "stakeTotalEth": 16.9
+    },
+    {
+      "id": "vnc",
+      "name": "Công Ty CP Chứng Chỉ Số VNC",
+      "admin": "0xV11G0001...2329",
+      "operatorManager": "0xV22T0001...2329",
+      "treasury": "0xV33K0001...2329",
+      "isActive": true,
+      "minStakeEth": 3.5,
+      "unstakeCooldownHours": 24,
+      "stakeTotalEth": 12.5
     }
   ],
   "operators": [
-    { "id": "me", "tenantId": "abc", "name": "Nguyễn Văn A", "address": "0x71C4...9A2f", "stakeEth": 0, "isActive": false, "bio": null, "flaggedNote": null, "recoveryDelegateId": null },
-    { "id": "tran-b", "tenantId": "abc", "name": "Giảng viên Trần B", "address": "0xT001...B99F", "stakeEth": 5.0, "isActive": true, "flaggedNote": null, "recoveryDelegateId": null },
-    { "id": "le-d", "tenantId": "abc", "name": "Quản lý Lê D", "address": "0xL004...D88E", "stakeEth": 10.0, "isActive": false, "flaggedNote": "Vừa nạp đủ cọc, chờ kích hoạt", "recoveryDelegateId": null },
-    { "id": "le-c", "tenantId": "abc", "name": "Giảng viên Lê C", "address": "0xL003...C77D", "stakeEth": 5.0, "isActive": true, "flaggedNote": "Tình nghi gian lận", "recoveryDelegateId": null },
-    { "id": "le-f", "tenantId": "abc", "name": "Giảng viên Lê F", "address": "0xL006...F66C", "stakeEth": 5.0, "isActive": false, "flaggedNote": "Mất quyền truy cập ví chính, có ví dự phòng", "recoveryDelegateId": "me" },
-    { "id": "van-g", "tenantId": "abc", "name": "Giảng viên Văn G", "address": "0xV007...G55B", "stakeEth": 8.0, "isActive": false, "flaggedNote": "Mất ví, KHÔNG có ví dự phòng", "recoveryDelegateId": null }
+    {
+      "id": "me",
+      "tenantId": "abc",
+      "name": "Nguyễn Văn A",
+      "address": "0x71C4...9A2f",
+      "stakeEth": 0,
+      "isActive": false,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "tran-b",
+      "tenantId": "abc",
+      "name": "Giảng viên Trần B",
+      "address": "0xT001...B99F",
+      "stakeEth": 5,
+      "isActive": true,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "le-d",
+      "tenantId": "abc",
+      "name": "Quản lý Lê D",
+      "address": "0xL004...D88E",
+      "stakeEth": 10,
+      "isActive": false,
+      "flaggedNote": "Vừa nạp đủ cọc, chờ kích hoạt",
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "le-c",
+      "tenantId": "abc",
+      "name": "Giảng viên Lê C",
+      "address": "0xL003...C77D",
+      "stakeEth": 5,
+      "isActive": true,
+      "flaggedNote": "Tình nghi gian lận",
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "le-f",
+      "tenantId": "abc",
+      "name": "Giảng viên Lê F",
+      "address": "0xL006...F66C",
+      "stakeEth": 5,
+      "isActive": false,
+      "flaggedNote": "Mất quyền truy cập ví chính, có ví dự phòng",
+      "recoveryDelegateId": "me"
+    },
+    {
+      "id": "van-g",
+      "tenantId": "abc",
+      "name": "Giảng viên Văn G",
+      "address": "0xV007...G55B",
+      "stakeEth": 8,
+      "isActive": false,
+      "flaggedNote": "Mất ví, KHÔNG có ví dự phòng",
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "abc-op1",
+      "tenantId": "abc",
+      "name": "Nguyễn Văn An",
+      "address": "0xABC-0001...2329",
+      "stakeEth": 0,
+      "isActive": false,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "abc-op2",
+      "tenantId": "abc",
+      "name": "Trần Thị An",
+      "address": "0xABC-0002...232A",
+      "stakeEth": 4.2,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "abc-op3",
+      "tenantId": "abc",
+      "name": "Lê Minh An",
+      "address": "0xABC-0003...232B",
+      "stakeEth": 6.9,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "abc-op4",
+      "tenantId": "abc",
+      "name": "Phạm Thu An",
+      "address": "0xABC-0004...232C",
+      "stakeEth": 9.6,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "abc-op5",
+      "tenantId": "abc",
+      "name": "Hoàng Anh An",
+      "address": "0xABC-0005...232D",
+      "stakeEth": 7.6,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "abc-op6",
+      "tenantId": "abc",
+      "name": "Vũ Đức An",
+      "address": "0xABC-0006...232E",
+      "stakeEth": 4.8,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "abc-op7",
+      "tenantId": "abc",
+      "name": "Đặng Ngọc An",
+      "address": "0xABC-0007...232F",
+      "stakeEth": 5.8,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "abc-op8",
+      "tenantId": "abc",
+      "name": "Bùi Quốc An",
+      "address": "0xABC-0008...2330",
+      "stakeEth": 3.4,
+      "isActive": false,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "abc-op9",
+      "tenantId": "abc",
+      "name": "Đỗ Thùy An",
+      "address": "0xABC-0009...2331",
+      "stakeEth": 5.2,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "abc-op10",
+      "tenantId": "abc",
+      "name": "Ngô Gia An",
+      "address": "0xABC-000A...2332",
+      "stakeEth": 4.5,
+      "isActive": false,
+      "bio": null,
+      "flaggedNote": "Mất ví, KHÔNG có ví dự phòng",
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "abc-op11",
+      "tenantId": "abc",
+      "name": "Dương Kim An",
+      "address": "0xABC-000B...2333",
+      "stakeEth": 8.2,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "abc-op12",
+      "tenantId": "abc",
+      "name": "Lý Hải An",
+      "address": "0xABC-000C...2334",
+      "stakeEth": 2.7,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "abc-op13",
+      "tenantId": "abc",
+      "name": "Phan Bảo An",
+      "address": "0xABC-000D...2335",
+      "stakeEth": 3.2,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "abc-op14",
+      "tenantId": "abc",
+      "name": "Trịnh Xuân An",
+      "address": "0xABC-000E...2336",
+      "stakeEth": 8.6,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "bku-op1",
+      "tenantId": "bku",
+      "name": "Đinh Thảo An",
+      "address": "0xBKU-0001...2329",
+      "stakeEth": 7.2,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "bku-op2",
+      "tenantId": "bku",
+      "name": "Nguyễn Văn Bình",
+      "address": "0xBKU-0002...232A",
+      "stakeEth": 9.8,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "bku-op3",
+      "tenantId": "bku",
+      "name": "Trần Thị Bình",
+      "address": "0xBKU-0003...232B",
+      "stakeEth": 0,
+      "isActive": false,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "bku-op4",
+      "tenantId": "bku",
+      "name": "Lê Minh Bình",
+      "address": "0xBKU-0004...232C",
+      "stakeEth": 5.3,
+      "isActive": false,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "bku-op5",
+      "tenantId": "bku",
+      "name": "Phạm Thu Bình",
+      "address": "0xBKU-0005...232D",
+      "stakeEth": 3,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "bku-op6",
+      "tenantId": "bku",
+      "name": "Hoàng Anh Bình",
+      "address": "0xBKU-0006...232E",
+      "stakeEth": 9.5,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "bku-op7",
+      "tenantId": "bku",
+      "name": "Vũ Đức Bình",
+      "address": "0xBKU-0007...232F",
+      "stakeEth": 4.3,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "xyz-op1",
+      "tenantId": "xyz",
+      "name": "Đặng Ngọc Bình",
+      "address": "0xXYZ-0001...2329",
+      "stakeEth": 4,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "xyz-op2",
+      "tenantId": "xyz",
+      "name": "Bùi Quốc Bình",
+      "address": "0xXYZ-0002...232A",
+      "stakeEth": 3.2,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "xyz-op3",
+      "tenantId": "xyz",
+      "name": "Đỗ Thùy Bình",
+      "address": "0xXYZ-0003...232B",
+      "stakeEth": 8.7,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "xyz-op4",
+      "tenantId": "xyz",
+      "name": "Ngô Gia Bình",
+      "address": "0xXYZ-0004...232C",
+      "stakeEth": 4,
+      "isActive": false,
+      "bio": null,
+      "flaggedNote": "Mất ví, KHÔNG có ví dự phòng",
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "hvbc-op1",
+      "tenantId": "hvbc",
+      "name": "Dương Kim Bình",
+      "address": "0xHVBC0001...2329",
+      "stakeEth": 4.3,
+      "isActive": false,
+      "bio": null,
+      "flaggedNote": "Vừa nạp đủ cọc, chờ kích hoạt",
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "hvbc-op2",
+      "tenantId": "hvbc",
+      "name": "Lý Hải Bình",
+      "address": "0xHVBC0002...232A",
+      "stakeEth": 4,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "hvbc-op3",
+      "tenantId": "hvbc",
+      "name": "Phan Bảo Bình",
+      "address": "0xHVBC0003...232B",
+      "stakeEth": 8.6,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "vnc-op1",
+      "tenantId": "vnc",
+      "name": "Trịnh Xuân Bình",
+      "address": "0xVNC-0001...2329",
+      "stakeEth": 6.1,
+      "isActive": true,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "vnc-op2",
+      "tenantId": "vnc",
+      "name": "Đinh Thảo Bình",
+      "address": "0xVNC-0002...232A",
+      "stakeEth": 0,
+      "isActive": false,
+      "bio": null,
+      "flaggedNote": null,
+      "recoveryDelegateId": null
+    },
+    {
+      "id": "vnc-op3",
+      "tenantId": "vnc",
+      "name": "Nguyễn Văn Cường",
+      "address": "0xVNC-0003...232B",
+      "stakeEth": 6.4,
+      "isActive": false,
+      "bio": null,
+      "flaggedNote": "Tình nghi gian lận",
+      "recoveryDelegateId": null
+    }
   ],
   "violationPenalties": [
-    { "code": 1, "label": "Lỗi hành chính nhẹ (vd. sai ngày cấp)", "bps": 100 },
-    { "code": 2, "label": "Lỗi trung bình (vd. thiếu hồ sơ đính kèm)", "bps": 1000 },
-    { "code": 3, "label": "Lỗi nghiêm trọng (chưa tới mức tước quyền)", "bps": 5000 }
+    {
+      "code": 1,
+      "label": "Lỗi hành chính nhẹ (vd. sai ngày cấp)",
+      "bps": 100
+    },
+    {
+      "code": 2,
+      "label": "Lỗi trung bình (vd. thiếu hồ sơ đính kèm)",
+      "bps": 1000
+    },
+    {
+      "code": 3,
+      "label": "Lỗi nghiêm trọng (chưa tới mức tước quyền)",
+      "bps": 5000
+    },
+    {
+      "code": 4,
+      "label": "Tái phạm nhiều lần trong 1 quý",
+      "bps": 8000
+    }
   ],
   "coSignPolicies": [
-    { "docType": 1, "label": "Chứng chỉ Cơ bản", "enabled": false, "minSigners": 1, "minStakeEth": 0, "requiredRoleIds": [] },
-    { "docType": 2, "label": "Chứng chỉ Chuyên gia cao cấp", "enabled": true, "minSigners": 2, "minStakeEth": 3, "requiredRoleIds": [2] }
+    {
+      "docType": 1,
+      "label": "Chứng chỉ Cơ bản",
+      "enabled": false,
+      "minSigners": 1,
+      "minStakeEth": 0,
+      "requiredRoleIds": []
+    },
+    {
+      "docType": 2,
+      "label": "Chứng chỉ Chuyên gia cao cấp",
+      "enabled": true,
+      "minSigners": 2,
+      "minStakeEth": 3,
+      "requiredRoleIds": [
+        2
+      ]
+    }
   ],
   "roleCatalog": [
-    { "roleId": 1, "label": "Giảng viên chuyên môn" },
-    { "roleId": 2, "label": "QL Chuyên môn / Kiểm định chất lượng" }
+    {
+      "roleId": 1,
+      "label": "Giảng viên chuyên môn"
+    },
+    {
+      "roleId": 2,
+      "label": "QL Chuyên môn / Kiểm định chất lượng"
+    },
+    {
+      "roleId": 3,
+      "label": "Kiểm định An toàn Dữ liệu"
+    }
   ],
   "coSignWhitelist": [
-    { "docType": 2, "operatorId": "tran-b", "roleId": 1 },
-    { "docType": 2, "operatorId": "me", "roleId": 2 }
+    {
+      "docType": 2,
+      "operatorId": "tran-b",
+      "roleId": 1
+    },
+    {
+      "docType": 2,
+      "operatorId": "me",
+      "roleId": 2
+    },
+    {
+      "docType": 2,
+      "operatorId": "le-c",
+      "roleId": 2
+    },
+    {
+      "docType": 2,
+      "operatorId": "abc-op2",
+      "roleId": 1
+    },
+    {
+      "docType": 2,
+      "operatorId": "abc-op3",
+      "roleId": 2
+    },
+    {
+      "docType": 2,
+      "operatorId": "abc-op4",
+      "roleId": 1
+    },
+    {
+      "docType": 2,
+      "operatorId": "abc-op5",
+      "roleId": 2
+    },
+    {
+      "docType": 2,
+      "operatorId": "abc-op6",
+      "roleId": 1
+    },
+    {
+      "docType": 2,
+      "operatorId": "abc-op7",
+      "roleId": 2
+    },
+    {
+      "docType": 2,
+      "operatorId": "abc-op9",
+      "roleId": 1
+    },
+    {
+      "docType": 2,
+      "operatorId": "abc-op11",
+      "roleId": 2
+    }
   ],
   "documents": [
     {
@@ -79,12 +624,27 @@
       "cid": "QmYwAPJzv5CZsnA62CkXKAoDDf5vGkfZWNAsWQd6uZ4wU9",
       "content": {
         "pages": [
-          { "heading": "Trang bìa", "body": "CHỨNG CHỈ HOÀN THÀNH KHOÁ HỌC\n\"Chuyên Gia AI\"\n\nCấp cho: Nguyễn Văn A\nCông ty Cổ phần Giáo dục ABC" },
-          { "heading": "Nội dung khoá học", "body": "Khoá học 120 giờ gồm: Nền tảng Machine Learning, Deep Learning ứng dụng, Triển khai mô hình production.\n\nKết quả: Đạt loại Xuất sắc (9.2/10)." },
-          { "heading": "Chữ ký & Xác thực số", "body": "Ký bởi: Giảng viên Trần B\nMã băm tài liệu (fileHash) được neo trên chuỗi, đối chiếu được với nội dung trang này để chống làm giả." }
+          {
+            "heading": "Trang bìa",
+            "body": "CHỨNG CHỈ HOÀN THÀNH KHOÁ HỌC\n\"Chuyên Gia AI\"\n\nCấp cho: Nguyễn Văn A\nCông ty Cổ phần Giáo dục ABC"
+          },
+          {
+            "heading": "Nội dung khoá học",
+            "body": "Khoá học 120 giờ gồm: Nền tảng Machine Learning, Deep Learning ứng dụng, Triển khai mô hình production.\n\nKết quả: Đạt loại Xuất sắc (9.2/10)."
+          },
+          {
+            "heading": "Chữ ký & Xác thực số",
+            "body": "Ký bởi: Giảng viên Trần B\nMã băm tài liệu (fileHash) được neo trên chuỗi, đối chiếu được với nội dung trang này để chống làm giả."
+          }
         ]
       },
-      "coSign": { "trustedCount": 1, "trustedRoleIds": [1], "qualified": false }
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [
+          1
+        ],
+        "qualified": false
+      }
     },
     {
       "id": "CERT-1122-XYZ",
@@ -99,10 +659,17 @@
       "cid": "QmT5NvUtoM5nWFfrQdVrFtvGfKFmG7AHE8P34isapyhCxX",
       "content": {
         "pages": [
-          { "heading": "Văn bằng", "body": "VĂN BẰNG LẬP TRÌNH CƠ BẢN\n\nCấp cho: Nguyễn Văn A\nTrung tâm Đào tạo XYZ — Hoàn thành 01/05/2025" }
+          {
+            "heading": "Văn bằng",
+            "body": "VĂN BẰNG LẬP TRÌNH CƠ BẢN\n\nCấp cho: Nguyễn Văn A\nTrung tâm Đào tạo XYZ — Hoàn thành 01/05/2025"
+          }
         ]
       },
-      "coSign": { "trustedCount": 1, "trustedRoleIds": [], "qualified": true }
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      }
     },
     {
       "id": "VC-5501-EDU",
@@ -118,25 +685,522 @@
       "cid": "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco",
       "content": {
         "pages": [
-          { "heading": "Voucher", "body": "VOUCHER GIẢM 50% HỌC PHÍ\n\nCấp cho: Nguyễn Văn A\nCông ty CP Giáo dục ABC" }
+          {
+            "heading": "Voucher",
+            "body": "VOUCHER GIẢM 50% HỌC PHÍ\n\nCấp cho: Nguyễn Văn A\nCông ty CP Giáo dục ABC"
+          }
         ]
       },
-      "coSign": { "trustedCount": 1, "trustedRoleIds": [], "qualified": true }
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      }
+    },
+    {
+      "id": "CERT-1001-ABC",
+      "title": "Voucher Giảm Học Phí Kỳ 2",
+      "owner": "Nguyễn Văn A",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Giảng viên Văn G",
+      "issuedAt": "23/07/2026",
+      "docType": 2,
+      "status": "valid",
+      "cid": "Qmz8c9c3r0axl9tl2apasi6t",
+      "coSign": {
+        "trustedCount": 0,
+        "trustedRoleIds": [],
+        "qualified": false
+      }
+    },
+    {
+      "id": "CERT-1002-ABC",
+      "title": "Chứng Chỉ Bảo Mật Ứng Dụng",
+      "owner": "Trịnh Xuân An",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Giảng viên Lê F",
+      "issuedAt": "27/05/2026",
+      "docType": 1,
+      "status": "valid",
+      "cid": "Qm39x5ntq0v5uuqe2ibm9ro",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      }
+    },
+    {
+      "id": "CERT-1003-ABC",
+      "title": "Voucher Học Bổng Toàn Phần",
+      "owner": "Trần Quốc E",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Giảng viên Lê F",
+      "issuedAt": "10/01/2026",
+      "docType": 1,
+      "status": "valid",
+      "cid": "Qm96jedebybkwjj3b2zhergh",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      }
+    },
+    {
+      "id": "CERT-1004-ABC",
+      "title": "Văn Bằng Thiết Kế UI/UX",
+      "owner": "Nguyễn Thị F",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Giảng viên Trần B",
+      "issuedAt": "16/05/2026",
+      "docType": 1,
+      "status": "valid",
+      "cid": "Qmlquhfgx92kgx0iyohviuzh",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      }
+    },
+    {
+      "id": "CERT-1005-ABC",
+      "title": "Chứng Chỉ Bảo Mật Ứng Dụng",
+      "owner": "Hoàng Văn G",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Trần Thị An",
+      "issuedAt": "08/05/2026",
+      "docType": 2,
+      "status": "valid",
+      "cid": "Qmpdrajl43pkrrdklrslucg",
+      "coSign": {
+        "trustedCount": 0,
+        "trustedRoleIds": [],
+        "qualified": false
+      }
+    },
+    {
+      "id": "CERT-1006-ABC",
+      "title": "Văn Bằng Ngoại Ngữ Chuyên Ngành",
+      "owner": "Lý Hải An",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Trần Thị An",
+      "issuedAt": "06/05/2026",
+      "docType": 2,
+      "status": "valid",
+      "cid": "Qmlyuf815cm2k1z0yulx2n3l",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [
+          1
+        ],
+        "qualified": false
+      }
+    },
+    {
+      "id": "CERT-1007-ABC",
+      "title": "Văn Bằng Kinh Doanh Số",
+      "owner": "Giảng viên Lê F",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Giảng viên Văn G",
+      "issuedAt": "16/07/2026",
+      "docType": 1,
+      "status": "valid",
+      "cid": "Qm22a7v2rm70ac74q7ywcrwk",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      }
+    },
+    {
+      "id": "CERT-1008-ABC",
+      "title": "Voucher Combo Khoá Học",
+      "owner": "Vũ Đức An",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Giảng viên Trần B",
+      "issuedAt": "04/02/2026",
+      "docType": 2,
+      "status": "revoked",
+      "cid": "Qm1ts1m7giwubfxcmbukcq2d",
+      "coSign": {
+        "trustedCount": 2,
+        "trustedRoleIds": [
+          1
+        ],
+        "qualified": false
+      },
+      "revokedReason": "Hồ sơ đăng ký không hợp lệ."
+    },
+    {
+      "id": "CERT-1009-ABC",
+      "title": "Văn Bằng Ngoại Ngữ Chuyên Ngành",
+      "owner": "Đỗ Thùy An",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Vũ Đức An",
+      "issuedAt": "20/05/2026",
+      "docType": 1,
+      "status": "revoked",
+      "cid": "Qmc6r3lbgklt5pnaqo13falh",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      },
+      "revokedReason": "Yêu cầu thu hồi từ học viên."
+    },
+    {
+      "id": "CERT-1010-ABC",
+      "title": "Văn Bằng Quản Lý Dự Án",
+      "owner": "Đỗ Thị M",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Giảng viên Lê F",
+      "issuedAt": "11/02/2026",
+      "docType": 1,
+      "status": "valid",
+      "cid": "Qm1awj84el9kmucummlol4lm",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      }
+    },
+    {
+      "id": "CERT-1011-ABC",
+      "title": "Chứng Chỉ Smart Contract",
+      "owner": "Dương Kim An",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Quản lý Lê D",
+      "issuedAt": "10/02/2026",
+      "docType": 1,
+      "status": "valid",
+      "cid": "Qmi746pyepyel3wffmyyarmg",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      }
+    },
+    {
+      "id": "CERT-1012-ABC",
+      "title": "Voucher Giảm Học Phí Kỳ 2",
+      "owner": "Giảng viên Văn G",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Vũ Đức An",
+      "issuedAt": "05/02/2026",
+      "docType": 2,
+      "status": "revoked",
+      "cid": "Qmc58p6iyl87m5bgz4pb4k5",
+      "coSign": {
+        "trustedCount": 0,
+        "trustedRoleIds": [],
+        "qualified": false
+      },
+      "revokedReason": "Hồ sơ đăng ký không hợp lệ."
+    },
+    {
+      "id": "CERT-1013-ABC",
+      "title": "Voucher Ưu Đãi Khoá Học Blockchain",
+      "owner": "Nguyễn Văn An",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Nguyễn Văn A",
+      "issuedAt": "20/02/2026",
+      "docType": 1,
+      "status": "revoked",
+      "cid": "Qmgxll9ngwzu4jptmblvepud",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      },
+      "revokedReason": "Yêu cầu thu hồi từ học viên."
+    },
+    {
+      "id": "CERT-1014-BKU",
+      "title": "Voucher Ưu Đãi Tân Sinh Viên",
+      "owner": "Lê Văn C",
+      "tenantId": "bku",
+      "tenantName": "Đại học Bách Khoa",
+      "issuer": "Lê Minh Bình",
+      "issuedAt": "22/07/2026",
+      "docType": 1,
+      "status": "valid",
+      "cid": "Qm59fghwlo3icbimzltjmfsj",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      }
+    },
+    {
+      "id": "CERT-1015-BKU",
+      "title": "Văn Bằng Quản Lý Dự Án",
+      "owner": "Phạm Thị D",
+      "tenantId": "bku",
+      "tenantName": "Đại học Bách Khoa",
+      "issuer": "Phạm Thu Bình",
+      "issuedAt": "12/03/2026",
+      "docType": 1,
+      "status": "revoked",
+      "cid": "Qmj8bmoz83hdieb4su0a0t9",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      },
+      "revokedReason": "Phát hiện gian lận trong lúc làm bài thi."
+    },
+    {
+      "id": "CERT-1016-BKU",
+      "title": "Voucher Ưu Đãi Tân Sinh Viên",
+      "owner": "Trần Quốc E",
+      "tenantId": "bku",
+      "tenantName": "Đại học Bách Khoa",
+      "issuer": "Trần Thị Bình",
+      "issuedAt": "01/02/2026",
+      "docType": 2,
+      "status": "valid",
+      "cid": "Qml3wjid52ud3m95y1em34b",
+      "coSign": {
+        "trustedCount": 2,
+        "trustedRoleIds": [
+          1
+        ],
+        "qualified": false
+      }
+    },
+    {
+      "id": "CERT-1017-BKU",
+      "title": "Chứng Chỉ Blockchain Cơ Bản",
+      "owner": "Nguyễn Thị F",
+      "tenantId": "bku",
+      "tenantName": "Đại học Bách Khoa",
+      "issuer": "Phạm Thu Bình",
+      "issuedAt": "15/01/2026",
+      "docType": 2,
+      "status": "valid",
+      "cid": "Qmz1zp6la31wsmj16l1gl8cs",
+      "coSign": {
+        "trustedCount": 0,
+        "trustedRoleIds": [],
+        "qualified": false
+      }
+    },
+    {
+      "id": "CERT-1018-BKU",
+      "title": "Chứng Chỉ Kiểm Thử Phần Mềm",
+      "owner": "Vũ Đức Bình",
+      "tenantId": "bku",
+      "tenantName": "Đại học Bách Khoa",
+      "issuer": "Lê Minh Bình",
+      "issuedAt": "15/05/2026",
+      "docType": 1,
+      "status": "valid",
+      "cid": "Qmlf4md3ymswp88c06j70p",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      }
+    },
+    {
+      "id": "CERT-1019-XYZ",
+      "title": "Chứng Chỉ DevOps Cơ Bản",
+      "owner": "Đặng Ngọc Bình",
+      "tenantId": "xyz",
+      "tenantName": "Trung tâm Đào tạo XYZ",
+      "issuer": "Đỗ Thùy Bình",
+      "issuedAt": "04/01/2026",
+      "docType": 1,
+      "status": "valid",
+      "cid": "Qmowwtsgnlxf8tdi1eyilaq",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      }
+    },
+    {
+      "id": "CERT-1020-XYZ",
+      "title": "Chứng Chỉ Kiểm Thử Phần Mềm",
+      "owner": "Phạm Thị D",
+      "tenantId": "xyz",
+      "tenantName": "Trung tâm Đào tạo XYZ",
+      "issuer": "Bùi Quốc Bình",
+      "issuedAt": "13/02/2026",
+      "docType": 1,
+      "status": "valid",
+      "cid": "Qmmmxas0y0xei4kqwompcy",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      }
+    },
+    {
+      "id": "CERT-1021-HVBC",
+      "title": "Văn Bằng Ngoại Ngữ Chuyên Ngành",
+      "owner": "Lê Văn C",
+      "tenantId": "hvbc",
+      "tenantName": "Học Viện Blockchain Việt",
+      "issuer": "Lý Hải Bình",
+      "issuedAt": "14/03/2026",
+      "docType": 1,
+      "status": "valid",
+      "cid": "Qmndgxc6zvvghi45wqwqfqtl",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      }
+    },
+    {
+      "id": "CERT-1022-HVBC",
+      "title": "Văn Bằng Quản Lý Dự Án",
+      "owner": "Phạm Thị D",
+      "tenantId": "hvbc",
+      "tenantName": "Học Viện Blockchain Việt",
+      "issuer": "Phan Bảo Bình",
+      "issuedAt": "14/03/2026",
+      "docType": 2,
+      "status": "revoked",
+      "cid": "Qm89lwemud0e8eb0g0q2m5ec",
+      "coSign": {
+        "trustedCount": 0,
+        "trustedRoleIds": [],
+        "qualified": false
+      },
+      "revokedReason": "Hồ sơ đăng ký không hợp lệ."
+    },
+    {
+      "id": "CERT-1023-VNC",
+      "title": "Chứng Chỉ Quản Trị Mạng",
+      "owner": "Trịnh Xuân Bình",
+      "tenantId": "vnc",
+      "tenantName": "Công Ty CP Chứng Chỉ Số VNC",
+      "issuer": "Đinh Thảo Bình",
+      "issuedAt": "10/06/2026",
+      "docType": 1,
+      "status": "valid",
+      "cid": "Qmgnxm50bsa5jxu9985vrflp",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      }
+    },
+    {
+      "id": "CERT-1024-VNC",
+      "title": "Voucher Giảm Học Phí Kỳ 2",
+      "owner": "Nguyễn Văn Cường",
+      "tenantId": "vnc",
+      "tenantName": "Công Ty CP Chứng Chỉ Số VNC",
+      "issuer": "Đinh Thảo Bình",
+      "issuedAt": "06/07/2026",
+      "docType": 2,
+      "status": "valid",
+      "cid": "Qmvzhxeyqiw5bcl83yqy6m",
+      "coSign": {
+        "trustedCount": 0,
+        "trustedRoleIds": [],
+        "qualified": false
+      }
+    },
+    {
+      "id": "CERT-9911-ABCD",
+      "title": "Chứng Chỉ Kiểm Thử Phần Mềm",
+      "owner": "Nguyễn Văn A",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Giảng viên Trần B",
+      "issuedAt": "05/03/2026",
+      "docType": 1,
+      "status": "valid",
+      "cid": "Qm1m6163orjdgumm9twi8tgl",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [],
+        "qualified": true
+      }
+    },
+    {
+      "id": "CERT-9922-ABCD",
+      "title": "Chứng Chỉ Kiến Trúc Hệ Thống",
+      "owner": "Nguyễn Văn A",
+      "tenantId": "abc",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "issuer": "Giảng viên Trần B",
+      "issuedAt": "12/04/2026",
+      "docType": 2,
+      "status": "valid",
+      "cid": "Qml25jc8qcgnkd0tzbva8io",
+      "coSign": {
+        "trustedCount": 1,
+        "trustedRoleIds": [
+          1
+        ],
+        "qualified": false
+      }
     }
   ],
   "recoveryAliases": [
-    { "currentOperatorId": "le-f", "rootAddress": "0xOLD...F001", "tenantName": "Công ty CP Giáo dục ABC", "recoveredAt": "15/06/2026", "reason": "Mất thiết bị cá nhân, dùng ví dự phòng tự cứu" }
+    {
+      "currentOperatorId": "le-f",
+      "rootAddress": "0xOLD...F001",
+      "tenantName": "Công ty CP Giáo dục ABC",
+      "recoveredAt": "15/06/2026",
+      "reason": "Mất thiết bị cá nhân, dùng ví dự phòng tự cứu"
+    }
   ],
   "explorer": {
-    "tvlEth": 245.5,
+    "tvlEth": 196.1,
     "totalDocuments": 15420,
     "ranking": [
-      { "name": "Đại học Bách Khoa", "stakeEth": 120.0 },
-      { "name": "Công ty CP Giáo dục ABC", "stakeEth": 65.0 }
+      {
+        "name": "Công ty CP Giáo dục ABC",
+        "stakeEth": 107.7
+      },
+      {
+        "name": "Đại học Bách Khoa",
+        "stakeEth": 39.1
+      },
+      {
+        "name": "Trung tâm Đào tạo XYZ",
+        "stakeEth": 19.9
+      },
+      {
+        "name": "Học Viện Blockchain Việt",
+        "stakeEth": 16.9
+      },
+      {
+        "name": "Công Ty CP Chứng Chỉ Số VNC",
+        "stakeEth": 12.5
+      }
     ],
     "events": [
-      { "icon": "fa-file-signature", "color": "emerald", "text": "<span class=\"font-bold\">Công ty ABC</span> vừa phát hành chứng chỉ.", "time": "1 phút trước" },
-      { "icon": "fa-gavel", "color": "red", "text": "<span class=\"font-bold text-red-600\">Xử Phạt:</span> Giảng viên Lê C bị tịch thu <span class=\"font-bold\">5.0 ETH</span>.", "time": "12 phút trước" }
+      {
+        "icon": "fa-file-signature",
+        "color": "emerald",
+        "text": "<span class=\"font-bold\">Công ty ABC</span> vừa phát hành chứng chỉ.",
+        "time": "1 phút trước"
+      },
+      {
+        "icon": "fa-gavel",
+        "color": "red",
+        "text": "<span class=\"font-bold text-red-600\">Xử Phạt:</span> Giảng viên Lê C bị tịch thu <span class=\"font-bold\">5.0 ETH</span>.",
+        "time": "12 phút trước"
+      }
     ]
   }
 }

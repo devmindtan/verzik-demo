@@ -79,6 +79,28 @@
             transition: opacity 0.25s ease;
         }
 
+        .select-custom {
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+            padding-right: 2.25rem;
+            cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .select-custom:hover {
+            border-color: #94a3b8;
+        }
+
+        .select-custom:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
         @media (max-width: 1023px) {
             #app-sidebar {
                 position: fixed;
@@ -121,6 +143,26 @@
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
+
+        /* Tables with many columns (>4): stack each <td> into a card instead of scrolling
+           horizontally on mobile. Each <td> needs a data-label attribute for the printed heading. */
+        @media (max-width: 767px) {
+            table.responsive-table thead { display: none; }
+            table.responsive-table, table.responsive-table tbody, table.responsive-table tr, table.responsive-table td {
+                display: block; width: 100%;
+            }
+            table.responsive-table tr {
+                margin-bottom: 0.75rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; overflow: hidden;
+            }
+            table.responsive-table td {
+                padding: 0.5rem 0.75rem; border-bottom: 1px solid #f1f5f9; text-align: left !important;
+            }
+            table.responsive-table td:last-child { border-bottom: none; }
+            table.responsive-table td::before {
+                content: attr(data-label); display: block; font-size: 0.65rem; font-weight: 700;
+                color: #94a3b8; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 0.25rem;
+            }
+        }
     </style>
 </head>
 
@@ -160,9 +202,9 @@
                 class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white text-lg shrink-0">
                 <i class="fa-solid fa-link"></i>
             </div>
-            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-800 truncate">TrustChain <span
-                    class="hidden sm:inline text-xs font-normal text-slate-400 bg-slate-100 px-2 py-1 rounded ml-2 border border-slate-200">Demo
-                    Portal</span></h1>
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-800 truncate">Verzik <span
+                    class="hidden sm:inline text-xs font-normal text-slate-400 bg-slate-100 px-2 py-1 rounded ml-2 border border-slate-200">Demo</span>
+            </h1>
         </div>
 
         <div class="flex items-center gap-2 sm:gap-4 min-w-0">
@@ -247,7 +289,7 @@
                     </nav>
                 </div>
                 <div class="border-t border-slate-800 mb-4"></div>
-                <div id="personal-nav-block" class="mb-6">
+                <div id="register-nav-block" class="mb-6">
                     <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2">Đăng ký</p>
                     <nav class="space-y-1">
                         <button onclick="switchView('join')" id="nav-join"
@@ -472,7 +514,7 @@
                                     <div class="flex items-center gap-2 mt-1.5">
                                         <p class="text-sm font-mono text-slate-500 bg-slate-50 border border-slate-200 rounded px-2 py-0.5 truncate max-w-[200px] sm:max-w-none"
                                             id="account-address"></p>
-                                        <button onclick="copyAccountAddress()"
+                                        <button onclick="copyText(document.getElementById('account-address').textContent)"
                                             class="text-slate-400 hover:text-blue-600 shrink-0"
                                             title="Sao chép địa chỉ"><i class="fa-regular fa-copy text-xs"></i></button>
                                     </div>
@@ -779,11 +821,16 @@
                             <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2"><i
                                     class="fa-solid fa-users text-purple-500"></i> Danh Sách Nhân Sự Theo Doanh Nghiệp
                             </h3>
-                            <select id="explorer-operator-tenant-select" onchange="renderExplorerOperators(this.value)"
-                                class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"></select>
+                            <select id="explorer-operator-tenant-select"
+                                onchange="listLimits['explorer-operator']=10;renderExplorerOperators(this.value)"
+                                class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none select-custom"></select>
                         </div>
                         <p class="text-sm text-slate-500 mb-4">Dữ liệu đọc công khai — bất kỳ ai (kể cả đối tác tuyển
                             dụng) cũng tra cứu được, không cần tài khoản.</p>
+                        <input type="text" id="explorer-operator-search"
+                            oninput="listLimits['explorer-operator']=10;renderExplorerOperators(document.getElementById('explorer-operator-tenant-select').value)"
+                            placeholder="Tìm theo tên nhân viên..."
+                            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none mb-3">
                         <div class="table-scroll">
                             <table class="w-full text-left border-collapse">
                                 <thead class="bg-slate-50 border-b border-slate-200">
@@ -821,13 +868,17 @@
                         <h3 class="font-bold text-lg mb-6 border-b pb-3">Tạo Bản Ghi Mới</h3>
                         <div class="space-y-5">
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Tên đối tượng / Học
-                                        viên</label><input type="text" id="issue-owner-input"
-                                        class="w-full border border-slate-300 rounded-lg px-4 py-2" value="Lê Văn C">
+                                <div class="relative">
+                                    <input type="text" id="issue-owner-input" placeholder=" " value="Lê Văn C"
+                                        class="peer w-full border border-slate-300 rounded-lg px-4 pt-5 pb-2 outline-none focus:border-blue-500">
+                                    <label for="issue-owner-input"
+                                        class="absolute left-4 top-2 text-xs text-slate-500 transition-all pointer-events-none peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-xs peer-focus:text-blue-600">Tên
+                                        đối tượng / Học viên</label>
                                 </div>
                                 <div><label class="block text-sm font-medium text-slate-700 mb-1">Loại chứng
                                         chỉ</label><select id="issue-doctype-select"
-                                        class="w-full border border-slate-300 rounded-lg px-4 py-2"></select></div>
+                                        class="w-full border border-slate-300 rounded-lg px-4 py-2 select-custom"></select>
+                                </div>
                             </div>
                             <div><label class="block text-sm font-medium text-slate-700 mb-1">Mã định danh dữ liệu
                                     gốc</label><input type="text"
@@ -852,6 +903,11 @@
                     <p class="text-slate-500">Bạn đang dùng quyền: Quản lý Chuyên môn (Vai trò #2)</p>
                 </div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100">
+                        <input type="text" id="cosign-search" oninput="listLimits['cosign']=10;renderCosign()"
+                            placeholder="Tìm theo mã chứng chỉ hoặc người nhận..."
+                            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none">
+                    </div>
                     <div class="table-scroll">
                         <table class="w-full text-left border-collapse">
                             <thead class="bg-slate-50 border-b border-slate-200">
@@ -887,13 +943,13 @@
                     </div>
                     <p id="topup-disabled-note" class="hidden text-xs text-amber-600 mb-4">Tài khoản đang bị tạm ngưng —
                         cần Operator Manager kích hoạt lại trước khi nạp thêm cọc.</p>
-                    <button onclick="requestUnstake()" id="btn-unstake"
+                    <button onclick="confirmRequestUnstake()" id="btn-unstake"
                         class="w-full border-2 border-red-200 text-red-600 hover:bg-red-50 py-3 rounded-xl font-bold transition-colors">Gửi
                         Yêu Cầu Rút Tiền Nghỉ Việc</button>
                     <div id="unstake-pending-area"
                         class="hidden mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
                         <p class="text-amber-700 font-bold mb-3" id="unstake-pending-text"></p>
-                        <button onclick="executeUnstakeAction()" id="btn-execute-unstake"
+                        <button onclick="confirmExecuteUnstake()" id="btn-execute-unstake"
                             class="w-full bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-lg font-bold transition-colors"><i
                                 class="fa-solid fa-hand-holding-dollar"></i> Rút Tiền Ngay (demo: bỏ qua thời gian
                             chờ)</button>
@@ -922,10 +978,18 @@
                     </div>
                     <div class="p-8">
                         <div class="flex flex-col sm:flex-row gap-3">
-                            <select id="delegate-input"
-                                class="flex-1 border border-slate-300 bg-slate-50 text-slate-700 rounded-xl px-4 py-3 outline-none"></select>
+                            <div class="relative flex-1" id="delegate-combobox">
+                                <input type="text" id="delegate-search-input" autocomplete="off"
+                                    oninput="filterDelegateOptions(this.value)" onfocus="openDelegateOptions()"
+                                    placeholder="Tìm theo tên nhân viên..."
+                                    class="w-full border border-slate-300 bg-slate-50 text-slate-700 rounded-xl px-4 py-3 outline-none">
+                                <input type="hidden" id="delegate-input">
+                                <div id="delegate-options"
+                                    class="hidden absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                                </div>
+                            </div>
                             <button onclick="saveDelegate()" id="btn-save-delegate"
-                                class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold transition-all">Lưu
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold transition-all shrink-0">Lưu
                                 Ví</button>
                         </div>
                     </div>
@@ -956,6 +1020,7 @@
                 </div>
 
                 <div id="join-form-area" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <div id="join-form-errors"></div>
                     <p class="text-sm text-slate-500 mb-4">Chọn tổ chức muốn gia nhập, đặt cọc đủ mức tối thiểu là được
                         kích hoạt ngay lập tức (<code
                             class="text-xs bg-slate-100 px-1 rounded">joinAsOperator(tenantId, ...)</code> —
@@ -963,9 +1028,14 @@
                         hoạt động).</p>
                     <label class="block text-xs font-medium text-slate-500 mb-1">Tổ chức muốn gia nhập</label>
                     <select id="join-tenant-select" onchange="renderJoin()"
-                        class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm mb-3"></select>
-                    <input type="number" id="join-stake-input" placeholder="Số ETH đặt cọc"
-                        class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm mb-3">
+                        class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm mb-3 select-custom"></select>
+                    <div class="relative mb-3">
+                        <input type="number" id="join-stake-input" placeholder=" "
+                            class="peer w-full border border-slate-300 rounded-lg px-4 pt-5 pb-2 text-sm outline-none focus:border-blue-500">
+                        <label for="join-stake-input"
+                            class="absolute left-4 top-2 text-xs text-slate-500 transition-all pointer-events-none peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-xs peer-focus:text-blue-600">Số
+                            ETH đặt cọc</label>
+                    </div>
                     <textarea id="join-bio-input" rows="2"
                         class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm mb-3"
                         placeholder="Hồ sơ giới thiệu / CV rút gọn (tuỳ chọn)..."></textarea>
@@ -987,9 +1057,15 @@
                         thi được sau khi thẩm định hồ sơ pháp lý</p>
                 </div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <div id="apply-tenant-form-errors"></div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
-                        <input type="text" id="apply-tenant-name" placeholder="Tên doanh nghiệp"
-                            class="border border-slate-300 rounded-lg px-4 py-2 text-sm sm:col-span-2">
+                        <div class="relative sm:col-span-2">
+                            <input type="text" id="apply-tenant-name" placeholder=" "
+                                class="peer w-full border border-slate-300 rounded-lg px-4 pt-5 pb-2 text-sm outline-none focus:border-blue-500">
+                            <label for="apply-tenant-name"
+                                class="absolute left-4 top-2 text-xs text-slate-500 transition-all pointer-events-none peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-xs peer-focus:text-blue-600">Tên
+                                doanh nghiệp</label>
+                        </div>
                         <input type="text" id="apply-tenant-admin" placeholder="Ví đề xuất làm Admin 0x..."
                             class="border border-slate-300 rounded-lg px-4 py-2 text-sm font-mono">
                         <input type="text" id="apply-tenant-opmanager" placeholder="Ví đề xuất làm QL Vận hành 0x..."
@@ -1050,6 +1126,18 @@
                             class="text-xs bg-amber-100 px-1 rounded">grantRole</code> sau đó.</p>
                 </div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="hr-search" oninput="listLimits['hr']=10;renderHr()"
+                            placeholder="Tìm theo tên nhân viên..."
+                            class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none">
+                        <select id="hr-sort" onchange="listLimits['hr']=10;renderHr()"
+                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none">
+                            <option value="">Sắp xếp mặc định</option>
+                            <option value="name">Tên (A-Z)</option>
+                            <option value="stake">Stake (cao → thấp)</option>
+                            <option value="status">Trạng thái</option>
+                        </select>
+                    </div>
                     <div class="table-scroll">
                         <table class="w-full text-left border-collapse">
                             <thead class="bg-slate-50 border-b border-slate-200">
@@ -1073,6 +1161,17 @@
                         soft-slash luỹ tiến theo mã lỗi</p>
                 </div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="slash-search" oninput="listLimits['slash']=10;renderSlash()"
+                            placeholder="Tìm theo tên nhân viên..."
+                            class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none">
+                        <select id="slash-sort" onchange="listLimits['slash']=10;renderSlash()"
+                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none">
+                            <option value="">Sắp xếp mặc định</option>
+                            <option value="name">Tên (A-Z)</option>
+                            <option value="stake">Stake (cao → thấp)</option>
+                        </select>
+                    </div>
                     <div class="table-scroll">
                         <table class="w-full text-left border-collapse">
                             <tbody id="slash-table-body"></tbody>
@@ -1083,13 +1182,28 @@
 
             <!-- ================= VIEW: CONFIG (TENANT) ================= -->
             <section id="view-config" class="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto hidden fade-in">
-                <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-8">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-6">
                     <h2 class="text-2xl font-bold text-slate-800">Tham Số Hợp Đồng</h2><button onclick="saveConfig()"
                         id="btn-save-config"
                         class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors"><i
                             class="fa-solid fa-floppy-disk"></i> Cập nhật Chuỗi</button>
                 </div>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                <div class="inline-flex flex-wrap gap-1 bg-white border border-slate-200 rounded-xl p-1 mb-6 overflow-x-auto max-w-full">
+                    <button onclick="switchConfigTab('general')" id="config-tab-btn-general"
+                        class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-white whitespace-nowrap">Chung</button>
+                    <button onclick="switchConfigTab('cosign')" id="config-tab-btn-cosign"
+                        class="px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap">Chính
+                        Sách Đồng Ký</button>
+                    <button onclick="switchConfigTab('whitelist')" id="config-tab-btn-whitelist"
+                        class="px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap">Whitelist</button>
+                    <button onclick="switchConfigTab('penalty')" id="config-tab-btn-penalty"
+                        class="px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap">Mức
+                        Phạt</button>
+                </div>
+
+                <!-- TAB: CHUNG -->
+                <div id="config-tab-general">
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                         <h3 class="font-bold text-slate-800 mb-5 flex items-center gap-2"><i
                                 class="fa-solid fa-building text-blue-500"></i> Tham số Vận hành Chung</h3>
@@ -1105,25 +1219,28 @@
                                     class="w-full h-2 bg-slate-200 rounded-lg appearance-none"></div>
                         </div>
                     </div>
-                    <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                </div>
+
+                <!-- TAB: CHÍNH SÁCH ĐỒNG KÝ -->
+                <div id="config-tab-cosign" class="hidden">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                         <h3 class="font-bold text-slate-800 mb-5 flex items-center gap-2"><i
                                 class="fa-solid fa-users-gear text-emerald-500"></i> Chính Sách Đồng Ký Theo Loại Chứng
                             Chỉ</h3>
-                        <div class="overflow-x-auto mb-4">
-                            <div class="table-scroll">
-                                <table class="w-full text-left border-collapse">
-                                    <thead class="bg-slate-50 border-b border-slate-200">
-                                        <tr class="text-xs uppercase text-slate-500">
-                                            <th class="p-3">Loại Chứng Chỉ</th>
-                                            <th class="p-3 text-center">Bật Đồng Ký</th>
-                                            <th class="p-3">Số Chữ Ký Tối Thiểu</th>
-                                            <th class="p-3">Cọc Tối Thiểu (ETH)</th>
-                                            <th class="p-3">Vai Trò Bắt Buộc</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="cosign-policy-table-body"></tbody>
-                                </table>
-                            </div>
+                        <!-- >4 cột: trên mobile mỗi <td> tự xếp thành khối card (xem .responsive-table trong <style>), không cuộn ngang -->
+                        <div class="mb-4">
+                            <table class="w-full text-left border-collapse responsive-table">
+                                <thead class="bg-slate-50 border-b border-slate-200">
+                                    <tr class="text-xs uppercase text-slate-500">
+                                        <th class="p-3">Loại Chứng Chỉ</th>
+                                        <th class="p-3 text-center">Bật Đồng Ký</th>
+                                        <th class="p-3">Số Chữ Ký Tối Thiểu</th>
+                                        <th class="p-3">Cọc Tối Thiểu (ETH)</th>
+                                        <th class="p-3">Vai Trò Bắt Buộc</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cosign-policy-table-body"></tbody>
+                            </table>
                         </div>
                         <div class="flex flex-col sm:flex-row gap-3 sm:items-end border-t border-slate-100 pt-4">
                             <div class="flex-1"><label class="block text-xs font-medium text-slate-500 mb-1">Mã loại
@@ -1132,20 +1249,28 @@
                             <div class="flex-[3]"><label class="block text-xs font-medium text-slate-500 mb-1">Tên loại
                                     chứng chỉ</label><input type="text" id="new-doctype-label"
                                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
-                            <button onclick="addCoSignPolicy()"
+                            <button onclick="addCoSignPolicy()" id="btn-add-doctype"
                                 class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium shrink-0">Tạo
                                 Loại Chứng Chỉ Mới</button>
                         </div>
                     </div>
-                    <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                </div>
+
+                <!-- TAB: WHITELIST -->
+                <div id="config-tab-whitelist" class="hidden">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-5">
                             <h3 class="font-bold text-slate-800 flex items-center gap-2"><i
                                     class="fa-solid fa-user-check text-indigo-500"></i> Whitelist & Vai Trò Đồng Ký</h3>
                             <select id="whitelist-doctype-select" onchange="changeWhitelistDocType(this.value)"
-                                class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"></select>
+                                class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none select-custom"></select>
                         </div>
                         <p class="text-sm text-slate-500 mb-4">Chỉ nhân viên được whitelist cho đúng loại chứng chỉ này
-                            mới được tính là chữ ký tin cậy (áp dụng khi đã bật Đồng Ký ở bảng trên).</p>
+                            mới được tính là chữ ký tin cậy (áp dụng khi đã bật Đồng Ký ở tab Chính Sách Đồng Ký).</p>
+                        <input type="text" id="whitelist-search"
+                            oninput="listLimits['whitelist']=10;renderWhitelistTable()"
+                            placeholder="Tìm theo tên nhân viên..."
+                            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none mb-3">
                         <div class="table-scroll">
                             <table class="w-full text-left border-collapse">
                                 <thead class="bg-slate-50 border-b border-slate-200">
@@ -1159,7 +1284,11 @@
                             </table>
                         </div>
                     </div>
-                    <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                </div>
+
+                <!-- TAB: MỨC PHẠT -->
+                <div id="config-tab-penalty" class="hidden">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                         <h3 class="font-bold text-slate-800 mb-5 flex items-center gap-2"><i
                                 class="fa-solid fa-scale-balanced text-red-500"></i> Bảng Mức Phạt Theo Vi Phạm</h3>
                         <div class="table-scroll">
@@ -1184,7 +1313,7 @@
                             <div class="flex-1"><label class="block text-xs font-medium text-slate-500 mb-1">%
                                     Cọc</label><input type="number" id="penalty-bps-input"
                                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
-                            <button onclick="addViolationPenalty()"
+                            <button onclick="addViolationPenalty()" id="btn-add-penalty"
                                 class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium shrink-0">Thêm
                                 mã lỗi</button>
                         </div>
@@ -1202,6 +1331,16 @@
                         placeholder="Nhập lý do thu hồi (áp dụng cho lần thu hồi tiếp theo)..."
                         class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm"></div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="revoke-search" oninput="listLimits['revoke']=10;renderRevoke()"
+                            placeholder="Tìm theo mã chứng chỉ..."
+                            class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none">
+                        <select id="revoke-sort" onchange="listLimits['revoke']=10;renderRevoke()"
+                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none">
+                            <option value="">Sắp xếp mặc định</option>
+                            <option value="status">Trạng thái</option>
+                        </select>
+                    </div>
                     <div class="table-scroll">
                         <table class="w-full text-left border-collapse">
                             <tbody id="revoke-table-body"></tbody>
@@ -1217,11 +1356,18 @@
                     <p class="text-slate-500">Chỉ Tenant Admin thực hiện được; không được trùng Admin/QL Vận hành</p>
                 </div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-8">
+                    <div id="treasury-form-errors"></div>
                     <p class="text-sm text-slate-500 mb-1">Tài khoản quỹ hiện tại:</p>
-                    <p class="font-mono font-bold text-slate-800 mb-6" id="treasury-current"></p>
+                    <div class="flex items-center gap-2 mb-6 font-mono font-bold text-slate-800" id="treasury-current">
+                    </div>
                     <div class="flex flex-col sm:flex-row gap-3">
-                        <input type="text" id="treasury-input" placeholder="Nhập địa chỉ ví quỹ mới 0x..."
-                            class="flex-1 border border-slate-300 rounded-xl px-4 py-3 font-mono outline-none">
+                        <div class="relative flex-1">
+                            <input type="text" id="treasury-input" placeholder=" "
+                                class="peer w-full border border-slate-300 rounded-xl px-4 pt-6 pb-2 font-mono outline-none focus:border-amber-500">
+                            <label for="treasury-input"
+                                class="absolute left-4 top-2.5 text-xs text-slate-500 transition-all pointer-events-none peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400 peer-focus:top-2.5 peer-focus:translate-y-0 peer-focus:text-xs peer-focus:text-amber-600">Nhập
+                                địa chỉ ví quỹ mới 0x...</label>
+                        </div>
                         <button onclick="changeTreasury()" id="btn-save-treasury"
                             class="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-xl font-bold transition-all shrink-0"><i
                                 class="fa-solid fa-floppy-disk"></i> Cập Nhật Treasury</button>
@@ -1262,11 +1408,17 @@
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
                     <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i
                             class="fa-solid fa-plus text-purple-500"></i> Tạo Tổ Chức Mới</h3>
+                    <div id="platform-form-errors"></div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                         <input type="text" id="new-tenant-id" placeholder="Mã tổ chức (vd: hcmut)"
                             class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
-                        <input type="text" id="new-tenant-name" placeholder="Tên doanh nghiệp"
-                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm sm:col-span-2 lg:col-span-2">
+                        <div class="relative sm:col-span-2 lg:col-span-2">
+                            <input type="text" id="new-tenant-name" placeholder=" "
+                                class="peer w-full border border-slate-300 rounded-lg px-3 pt-5 pb-2 text-sm outline-none focus:border-purple-500">
+                            <label for="new-tenant-name"
+                                class="absolute left-3 top-2 text-xs text-slate-500 transition-all pointer-events-none peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-placeholder-shown:text-slate-400 peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-xs peer-focus:text-purple-600">Tên
+                                doanh nghiệp</label>
+                        </div>
                         <input type="text" id="new-tenant-admin" placeholder="Ví Tenant Admin 0x..."
                             class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
                         <input type="text" id="new-tenant-opmanager" placeholder="Ví Operator Manager 0x..."
@@ -1301,14 +1453,26 @@
                 </div>
             </section>
 
-            <!-- Toast Notification -->
-            <div id="toast"
-                class="fixed bottom-6 right-6 bg-slate-800 text-white px-6 py-4 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-3 z-50">
-                <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white"
-                    id="toast-icon"><i class="fa-solid fa-check"></i></div>
-                <div>
-                    <p class="font-bold text-sm" id="toast-title">Thành công</p>
-                    <p class="text-xs text-slate-300" id="toast-message">Giao dịch đã lưu.</p>
+            <!-- Toast Notifications (stacked — showToast() appends one per call) -->
+            <div id="toast-container"
+                class="fixed bottom-6 right-6 z-50 flex flex-col-reverse gap-3 w-[calc(100%-3rem)] sm:w-80"></div>
+
+            <!-- Generic confirmation modal for destructive actions (Slash / Revoke / Unstake) -->
+            <div id="confirm-modal" class="hidden fixed inset-0 bg-slate-900/60 z-[60] items-center justify-center p-6">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+                    <div
+                        class="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center text-xl mb-4">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <h3 class="font-bold text-lg text-slate-800 mb-2" id="confirm-modal-title"></h3>
+                    <p class="text-sm text-slate-500 mb-6" id="confirm-modal-message"></p>
+                    <div class="flex gap-3">
+                        <button onclick="closeConfirmModal()"
+                            class="flex-1 border border-slate-200 text-slate-600 hover:bg-slate-50 py-2.5 rounded-lg font-semibold">Huỷ</button>
+                        <button onclick="confirmModalAccept()" id="confirm-modal-accept"
+                            class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg font-bold">Xác
+                            nhận</button>
+                    </div>
                 </div>
             </div>
 
@@ -1386,12 +1550,6 @@
                     ? 'px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-white whitespace-nowrap'
                     : 'px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap';
             });
-        }
-
-        function copyAccountAddress() {
-            const addr = document.getElementById('account-address').textContent;
-            navigator.clipboard.writeText(addr);
-            showToast('Đã sao chép', 'Địa chỉ ví đã được sao chép vào clipboard.');
         }
 
         // Gợi ý: khi render account-name, đồng thời set avatar là chữ cái đầu

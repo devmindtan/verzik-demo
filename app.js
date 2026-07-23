@@ -250,7 +250,23 @@ function switchView(viewId) {
     });
     const activeSection = document.getElementById(`view-${viewId}`);
     if (activeSection) activeSection.classList.remove('hidden');
-    renderers[viewId]?.();
+
+    // Gate conditions must be resolved BEFORE calling the page's render function: most renderers
+    // (renderJoin, renderAccount, ...) read connectedWallet/me() directly and throw if called with
+    // no wallet connected. An uncaught exception there would abort switchView() mid-way and skip
+    // the overlay toggles below, leaving the page visibly unlocked. Skipping the render call
+    // entirely when a blocking overlay will cover the page anyway sidesteps the whole class of bug.
+    const needsWallet = !NO_WALLET_VIEWS.includes(viewId) && !connectedWallet;
+    document.getElementById('connect-required-overlay').classList.toggle('hidden', !needsWallet);
+
+    const identityLockReason = !needsWallet ? identityLockReasonFor(viewId) : null;
+    document.getElementById('identity-locked-overlay').classList.toggle('hidden', !identityLockReason);
+    if (identityLockReason) document.getElementById('identity-locked-reason').innerText = identityLockReason;
+
+    const needsOperator = !needsWallet && !identityLockReason && OPERATOR_GATED_VIEWS.includes(viewId) && !me()?.isActive;
+    document.getElementById('operator-locked-overlay').classList.toggle('hidden', !needsOperator);
+
+    if (!needsWallet && !identityLockReason && !needsOperator) renderers[viewId]?.();
 
     // Sidebar badge must reflect reality the moment the Operator role/menu appears, not only
     // after the user has already clicked into the Cosign page (which is the only other place
@@ -260,16 +276,6 @@ function switchView(viewId) {
         const op = connectedWallet ? me() : null;
         cosignBadge.innerText = op ? pendingCosignDocs(op).length : 0;
     }
-
-    const needsWallet = !NO_WALLET_VIEWS.includes(viewId) && !connectedWallet;
-    document.getElementById('connect-required-overlay').classList.toggle('hidden', !needsWallet);
-
-    const identityLockReason = !needsWallet ? identityLockReasonFor(viewId) : null;
-    document.getElementById('identity-locked-overlay').classList.toggle('hidden', !identityLockReason);
-    if (identityLockReason) document.getElementById('identity-locked-reason').innerText = identityLockReason;
-
-    const needsOperator = !needsWallet && !identityLockReason && OPERATOR_GATED_VIEWS.includes(viewId) && !me().isActive;
-    document.getElementById('operator-locked-overlay').classList.toggle('hidden', !needsOperator);
 }
 
 // "Chặt chẽ hơn": một ví đã là nhân viên hoặc đã quản trị 1 doanh nghiệp thì không gia
@@ -286,18 +292,112 @@ function identityLockReasonFor(viewId) {
     return null;
 }
 
+// Stacked toasts: each call appends its own element (auto-dismiss + manual close), instead of
+// sharing one node that gets silently overwritten when actions fire in quick succession.
 function showToast(title, message, color = "emerald") {
-    const toast = document.getElementById('toast');
-    const icon = document.getElementById('toast-icon');
-    icon.className = `w-8 h-8 rounded-full flex items-center justify-center text-white bg-${color}-500`;
-    icon.innerHTML = color === 'red' ? '<i class="fa-solid fa-xmark"></i>' : (color === 'amber' ? '<i class="fa-solid fa-exclamation"></i>' : '<i class="fa-solid fa-check"></i>');
-    document.getElementById('toast-title').innerText = title;
-    document.getElementById('toast-message').innerText = message;
-    toast.classList.remove('translate-y-20', 'opacity-0');
-    setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const iconClass = color === 'red' ? 'fa-xmark' : (color === 'amber' ? 'fa-exclamation' : (color === 'indigo' || color === 'blue' ? 'fa-circle-info' : 'fa-check'));
+    const el = document.createElement('div');
+    el.className = 'bg-slate-800 text-white px-5 py-4 rounded-xl shadow-2xl flex items-start gap-3 transition-all duration-300 opacity-0 translate-y-2 w-full';
+    el.innerHTML = `<div class="w-8 h-8 rounded-full flex items-center justify-center text-white bg-${color}-500 shrink-0"><i class="fa-solid ${iconClass}"></i></div>
+        <div class="flex-1 min-w-0"><p class="font-bold text-sm">${title}</p><p class="text-xs text-slate-300 mt-0.5">${message}</p></div>
+        <button class="text-slate-400 hover:text-white shrink-0" aria-label="Đóng"><i class="fa-solid fa-xmark text-xs"></i></button>`;
+    container.appendChild(el);
+    requestAnimationFrame(() => el.classList.remove('opacity-0', 'translate-y-2'));
+    const dismiss = () => { el.classList.add('opacity-0', 'translate-y-2'); setTimeout(() => el.remove(), 300); };
+    el.querySelector('button').onclick = dismiss;
+    setTimeout(dismiss, 3000);
+}
+
+function copyText(text) {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    showToast('Đã sao chép', 'Địa chỉ ví đã được sao chép vào clipboard.');
+}
+
+function copyBtnHtml(text) {
+    return `<button type="button" onclick="event.stopPropagation();copyText('${text}')" class="text-slate-400 hover:text-blue-600" title="Sao chép địa chỉ"><i class="fa-regular fa-copy text-xs"></i></button>`;
 }
 
 function toggleMenu(id) { document.getElementById(id).classList.toggle('hidden'); }
+
+// ================= SHARED: EMPTY-STATE, FIELD ERRORS, CONFIRM MODAL =================
+function emptyStateHtml(icon, text, extraClass = '') {
+    return `<div class="${extraClass} py-10 text-center text-slate-400"><i class="fa-solid ${icon} text-3xl text-slate-300 mb-3"></i><p class="text-sm">${text}</p></div>`;
+}
+function emptyStateRow(colspan, icon, text) {
+    return `<tr><td colspan="${colspan}">${emptyStateHtml(icon, text)}</td></tr>`;
+}
+
+// ================= LIST CONTROLS: search + sort + "load more", shared by data tables that can grow large =================
+const listLimits = {};
+function listLimit(key) { return listLimits[key] || 10; }
+
+// rows: full array. opts.searchId/searchFn: static <input> id + (row, query) => bool.
+// opts.sortId/sortFns: static <select> id + { optionValue: (a,b) => number }.
+// Returns the slice to render plus a ready-made "Xem thêm" control (row-wrapped for <tbody>, plain div otherwise).
+// renderCall must be a full, ready-to-run JS call expression (e.g. "renderHr()" or
+// "renderExplorerOperators('abc')") — the "Xem thêm" button re-invokes it verbatim.
+function applyListControls(rows, key, renderCall, opts) {
+    let result = rows;
+    if (opts.searchId) {
+        const q = (document.getElementById(opts.searchId)?.value || '').trim().toLowerCase();
+        if (q) result = result.filter(r => opts.searchFn(r, q));
+    }
+    if (opts.sortId) {
+        const s = document.getElementById(opts.sortId)?.value || '';
+        if (s && opts.sortFns[s]) result = [...result].sort(opts.sortFns[s]);
+    }
+    const limit = listLimit(key);
+    const hasMore = result.length > limit;
+    const btn = `<button onclick="listLimits['${key}']=(listLimits['${key}']||10)+10;${renderCall}" class="text-sm font-semibold text-blue-600 hover:underline">Xem thêm (${result.length - limit}) →</button>`;
+    return {
+        rows: result.slice(0, limit),
+        total: result.length,
+        loadMoreRow: hasMore ? `<tr><td colspan="10" class="p-4 text-center">${btn}</td></tr>` : '',
+        loadMoreDiv: hasMore ? `<div class="p-4 text-center">${btn}</div>` : ''
+    };
+}
+
+function setFieldError(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('border-red-500', 'ring-1', 'ring-red-500');
+}
+function clearFieldErrors(ids) {
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('border-red-500', 'ring-1', 'ring-red-500');
+    });
+}
+function showFormError(containerId, messages) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    if (!messages.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `<div class="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3 mb-3 flex gap-2 items-start"><i class="fa-solid fa-triangle-exclamation mt-0.5 shrink-0"></i><div>${messages.map(m => `<p>${m}</p>`).join('')}</div></div>`;
+}
+
+let confirmModalCallback = null;
+function askConfirm(title, message, onConfirm, acceptLabel = 'Xác nhận') {
+    document.getElementById('confirm-modal-title').innerText = title;
+    document.getElementById('confirm-modal-message').innerText = message;
+    document.getElementById('confirm-modal-accept').innerText = acceptLabel;
+    confirmModalCallback = onConfirm;
+    const modal = document.getElementById('confirm-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+function closeConfirmModal() {
+    const modal = document.getElementById('confirm-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    confirmModalCallback = null;
+}
+function confirmModalAccept() {
+    const cb = confirmModalCallback;
+    closeConfirmModal();
+    cb?.();
+}
 
 // ================= MY DOCS (public) =================
 function renderMyDocs() {
@@ -309,7 +409,7 @@ function renderMyDocs() {
     document.getElementById('stat-valid').innerText = docs.filter(d => d.status === 'valid').length;
     document.getElementById('stat-revoked').innerText = docs.filter(d => d.status === 'revoked').length;
 
-    document.getElementById('my-docs-cards').innerHTML = docs.map(d => {
+    document.getElementById('my-docs-cards').innerHTML = !docs.length ? emptyStateHtml('fa-wallet', 'Bạn chưa sở hữu chứng từ nào.', 'sm:col-span-2') : docs.map(d => {
         const valid = d.status === 'valid';
         const policy = policyFor(d.docType);
         const required = policy && policy.enabled ? policy.minSigners : 1;
@@ -529,11 +629,15 @@ function renderExplorer() {
 }
 
 function renderExplorerOperators(tenantId) {
-    const rows = DATA.operators.filter(o => o.tenantId === tenantId && !o.recovered);
-    document.getElementById('explorer-operator-table').innerHTML = rows.length
-        ? rows.map(op => `
-            <tr class="border-b border-slate-100"><td class="p-3 text-sm font-medium">${op.name}</td><td class="p-3 text-sm font-bold text-blue-600">${fmtEth(op.stakeEth)} ETH</td><td class="p-3">${op.isActive ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">HOẠT ĐỘNG</span>' : '<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-xs font-bold">NGƯNG</span>'}</td></tr>`).join('')
-        : `<tr><td colspan="3" class="p-6 text-center text-slate-400 text-sm">Chưa có nhân sự nào.</td></tr>`;
+    const allRows = DATA.operators.filter(o => o.tenantId === tenantId && !o.recovered);
+    if (!allRows.length) { document.getElementById('explorer-operator-table').innerHTML = `<tr><td colspan="3" class="p-6 text-center text-slate-400 text-sm">Chưa có nhân sự nào.</td></tr>`; return; }
+    const { rows, total, loadMoreRow } = applyListControls(allRows, 'explorer-operator', `renderExplorerOperators('${tenantId}')`, {
+        searchId: 'explorer-operator-search', searchFn: (o, q) => o.name.toLowerCase().includes(q)
+    });
+    document.getElementById('explorer-operator-table').innerHTML = (!total
+        ? `<tr><td colspan="3" class="p-6 text-center text-slate-400 text-sm">Không tìm thấy nhân sự phù hợp.</td></tr>`
+        : rows.map(op => `
+            <tr class="border-b border-slate-100"><td class="p-3 text-sm font-medium">${op.name}</td><td class="p-3 text-sm font-bold text-blue-600">${fmtEth(op.stakeEth)} ETH</td><td class="p-3">${op.isActive ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">HOẠT ĐỘNG</span>' : '<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-xs font-bold">NGƯNG</span>'}</td></tr>`).join('')) + loadMoreRow;
 }
 
 function lookupRecoveryAlias() {
@@ -559,7 +663,7 @@ function renderIssue() {
         `<option value="${p.docType}">${p.label}${p.enabled ? ` (Cần ${p.minSigners} chữ ký tin cậy)` : ' (Không cần đồng ký)'}</option>`).join('');
 
     const myDocs = DATA.documents.filter(d => d.tenantId === me().tenantId);
-    document.getElementById('issue-history-list').innerHTML = myDocs.map(d =>
+    document.getElementById('issue-history-list').innerHTML = !myDocs.length ? emptyStateHtml('fa-inbox', 'Chưa có chứng từ nào được phát hành.') : myDocs.map(d =>
         `<div class="p-3 border border-slate-100 rounded-lg bg-slate-50"><p class="font-semibold text-sm">${d.id}</p><p class="text-xs text-slate-500">${d.owner}</p></div>`).join('');
 }
 
@@ -605,12 +709,15 @@ function renderCosign() {
     const pending = pendingCosignDocs(me());
     document.getElementById('cosign-badge').innerText = pending.length;
     document.getElementById('empty-cosign').classList.toggle('hidden', pending.length > 0);
-    document.getElementById('cosign-table-body').innerHTML = pending.map(d => `
+    const { rows, total, loadMoreRow } = applyListControls(pending, 'cosign', 'renderCosign()', {
+        searchId: 'cosign-search', searchFn: (d, q) => d.id.toLowerCase().includes(q) || d.owner.toLowerCase().includes(q)
+    });
+    document.getElementById('cosign-table-body').innerHTML = (pending.length && !total ? emptyStateRow(3, 'fa-magnifying-glass', 'Không tìm thấy chứng từ phù hợp.') : rows.map(d => `
         <tr class="border-b border-slate-100" id="row-cosign-${d.id}">
             <td class="p-4 font-mono text-sm text-blue-600 font-medium">${d.id}</td>
             <td class="p-4"><p class="font-semibold text-sm">${d.owner}</p></td>
             <td class="p-4 text-right"><button onclick="handleCoSign('${d.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 ml-auto"><i class="fa-solid fa-pen-nib"></i> Ký duyệt</button></td>
-        </tr>`).join('');
+        </tr>`).join('')) + loadMoreRow;
 }
 
 function handleCoSign(docId) {
@@ -649,10 +756,28 @@ function renderStake() {
     document.getElementById('topup-disabled-note').classList.toggle('hidden', !topupDisabled);
 }
 
+function confirmRequestUnstake() {
+    askConfirm(
+        "Xác nhận rút cọc",
+        "Bạn sắp gửi yêu cầu rút toàn bộ tiền cọc. Sau thời gian chờ, tư cách Operator sẽ kết thúc và bạn sẽ không ký được chứng từ mới cho đến khi gia nhập lại.",
+        () => requestUnstake(),
+        "Gửi yêu cầu"
+    );
+}
+
 function requestUnstake() {
     const btn = document.getElementById('btn-unstake');
     btn.innerHTML = `<div class="loader border-red-600 border-top-transparent h-4 w-4"></div> Đang gửi lệnh...`;
     setTimeout(() => { me().unstakePending = true; renderStake(); showToast("Thành công", "Yêu cầu rút cọc đã ghi nhận. Chờ Cooldown."); }, 800);
+}
+
+function confirmExecuteUnstake() {
+    askConfirm(
+        "Xác nhận rút tiền",
+        "Toàn bộ tiền cọc sẽ được rút về ví và tư cách Operator sẽ kết thúc ngay lập tức.",
+        () => executeUnstakeAction(),
+        "Rút tiền ngay"
+    );
 }
 
 function executeUnstakeAction() {
@@ -685,15 +810,52 @@ function topUpStake() {
 }
 
 // ================= SECURITY (operator) =================
+// ================= Searchable combobox: recovery-delegate picker =================
+// Plain <select> becomes unusable once the operator roster is this large — a text input that
+// filters as you type, with a click-to-pick dropdown below it, scales to hundreds of entries.
+let delegateCandidates = [];
+
 function renderSecurity() {
     const op = me();
-    const candidates = DATA.operators.filter(o => o.id !== op.id && !o.recovered);
-    document.getElementById('delegate-current').innerText = op.recoveryDelegateId
-        ? `Ví dự phòng hiện tại: ${DATA.operators.find(o => o.id === op.recoveryDelegateId)?.name || op.recoveryDelegateId}`
-        : 'Chưa thiết lập ví dự phòng.';
-    document.getElementById('delegate-input').innerHTML = candidates.map(o =>
-        `<option value="${o.id}" ${o.id === op.recoveryDelegateId ? 'selected' : ''}>${o.name} (${o.address})</option>`).join('');
+    delegateCandidates = DATA.operators.filter(o => o.id !== op.id && !o.recovered);
+    const current = op.recoveryDelegateId ? DATA.operators.find(o => o.id === op.recoveryDelegateId) : null;
+    document.getElementById('delegate-current').innerText = current
+        ? `Ví dự phòng hiện tại: ${current.name}` : 'Chưa thiết lập ví dự phòng.';
+    document.getElementById('delegate-input').value = op.recoveryDelegateId || '';
+    document.getElementById('delegate-search-input').value = current ? current.name : '';
+    renderDelegateOptions(delegateCandidates);
 }
+
+function renderDelegateOptions(list) {
+    const box = document.getElementById('delegate-options');
+    box.innerHTML = list.length ? list.map(o =>
+        `<button type="button" onclick="selectDelegate('${o.id}')" class="w-full text-left px-3 py-2 hover:bg-slate-100 text-sm flex justify-between items-center gap-2 border-b border-slate-50 last:border-0"><span class="font-medium text-slate-700">${o.name}</span><span class="text-slate-400 font-mono text-xs">${o.address}</span></button>`
+    ).join('') : `<div class="px-3 py-3 text-sm text-slate-400 text-center">Không tìm thấy nhân viên phù hợp.</div>`;
+}
+
+function filterDelegateOptions(query) {
+    const q = query.trim().toLowerCase();
+    document.getElementById('delegate-input').value = '';
+    renderDelegateOptions(q ? delegateCandidates.filter(o => o.name.toLowerCase().includes(q)) : delegateCandidates);
+    document.getElementById('delegate-options').classList.remove('hidden');
+}
+
+function openDelegateOptions() {
+    renderDelegateOptions(delegateCandidates);
+    document.getElementById('delegate-options').classList.remove('hidden');
+}
+
+function selectDelegate(id) {
+    const op = delegateCandidates.find(o => o.id === id);
+    document.getElementById('delegate-input').value = id;
+    document.getElementById('delegate-search-input').value = op.name;
+    document.getElementById('delegate-options').classList.add('hidden');
+}
+
+document.addEventListener('click', e => {
+    const box = document.getElementById('delegate-combobox');
+    if (box && !box.contains(e.target)) document.getElementById('delegate-options')?.classList.add('hidden');
+});
 
 function saveDelegate() {
     const input = document.getElementById('delegate-input');
@@ -722,6 +884,8 @@ function saveProfileMetadata() {
 
 // ================= JOIN AS OPERATOR (public — permissionless, no role required) =================
 function renderJoin() {
+    clearFieldErrors(['join-stake-input']);
+    showFormError('join-form-errors', []);
     const operator = me();
     const select = document.getElementById('join-tenant-select');
     const prevValue = select.value || operator.tenantId || DATA.tenants[0].id;
@@ -737,15 +901,19 @@ function renderJoin() {
 }
 
 function joinAsOperatorAction() {
+    clearFieldErrors(['join-stake-input']);
+    showFormError('join-form-errors', []);
     const tenantId = document.getElementById('join-tenant-select').value;
     const t = DATA.tenants.find(x => x.id === tenantId);
     const operator = me();
     const stake = Number(document.getElementById('join-stake-input').value);
     const bio = document.getElementById('join-bio-input').value.trim();
 
-    if (operator.isActive) { showToast("Lỗi", "Ví này đã đang hoạt động.", "red"); return; }
-    if (!t.isActive) { showToast("Lỗi", "Tổ chức đang tạm khoá, không nhận thành viên mới.", "red"); return; }
-    if (!stake || stake < t.minStakeEth) { showToast("Lỗi", `Cần đặt cọc tối thiểu ${fmtEth(t.minStakeEth)} ETH.`, "red"); return; }
+    let error = null;
+    if (operator.isActive) error = 'Ví này đã đang hoạt động.';
+    else if (!t.isActive) error = 'Tổ chức đang tạm khoá, không nhận thành viên mới.';
+    else if (!stake || stake < t.minStakeEth) { setFieldError('join-stake-input'); error = `Cần đặt cọc tối thiểu ${fmtEth(t.minStakeEth)} ETH.`; }
+    if (error) { showFormError('join-form-errors', [error]); showToast("Lỗi", error, "red"); return; }
 
     const btn = document.getElementById('btn-join');
     btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div> Đang gửi...`;
@@ -765,9 +933,14 @@ function joinAsOperatorAction() {
 function renderApplyTenant() {
     ['apply-tenant-name', 'apply-tenant-admin', 'apply-tenant-opmanager', 'apply-tenant-treasury', 'apply-tenant-minstake', 'apply-tenant-note']
         .forEach(id => document.getElementById(id).value = '');
+    clearFieldErrors(['apply-tenant-name', 'apply-tenant-admin', 'apply-tenant-opmanager', 'apply-tenant-treasury', 'apply-tenant-minstake']);
+    showFormError('apply-tenant-form-errors', []);
 }
 
 function submitTenantApplication() {
+    const ids = ['apply-tenant-name', 'apply-tenant-admin', 'apply-tenant-opmanager', 'apply-tenant-treasury', 'apply-tenant-minstake'];
+    clearFieldErrors(ids);
+    showFormError('apply-tenant-form-errors', []);
     const name = document.getElementById('apply-tenant-name').value.trim();
     const admin = document.getElementById('apply-tenant-admin').value.trim();
     const opManager = document.getElementById('apply-tenant-opmanager').value.trim();
@@ -775,9 +948,17 @@ function submitTenantApplication() {
     const minStake = Number(document.getElementById('apply-tenant-minstake').value);
     const note = document.getElementById('apply-tenant-note').value.trim();
 
-    if (!name || !admin || !opManager || !treasury) { showToast("Lỗi", "Điền đủ thông tin bắt buộc.", "red"); return; }
-    if (admin === opManager || admin === treasury || opManager === treasury) { showToast("Lỗi", "3 vai trò đề xuất phải là 3 địa chỉ khác nhau.", "red"); return; }
-    if (!minStake || minStake <= 0) { showToast("Lỗi", "Mức cọc tối thiểu đề xuất phải > 0.", "red"); return; }
+    const errors = [];
+    if (!name) { setFieldError('apply-tenant-name'); errors.push('Nhập tên doanh nghiệp.'); }
+    if (!admin) { setFieldError('apply-tenant-admin'); errors.push('Nhập ví đề xuất làm Admin.'); }
+    if (!opManager) { setFieldError('apply-tenant-opmanager'); errors.push('Nhập ví đề xuất làm QL Vận hành.'); }
+    if (!treasury) { setFieldError('apply-tenant-treasury'); errors.push('Nhập ví đề xuất làm Treasury.'); }
+    if (admin && opManager && treasury && (admin === opManager || admin === treasury || opManager === treasury)) {
+        ['apply-tenant-admin', 'apply-tenant-opmanager', 'apply-tenant-treasury'].forEach(setFieldError);
+        errors.push('3 vai trò đề xuất phải là 3 địa chỉ khác nhau.');
+    }
+    if (!minStake || minStake <= 0) { setFieldError('apply-tenant-minstake'); errors.push('Mức cọc tối thiểu đề xuất phải > 0.'); }
+    if (errors.length) { showFormError('apply-tenant-form-errors', errors); showToast("Lỗi", errors[0], "red"); return; }
 
     const btn = document.getElementById('btn-apply-tenant');
     btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div> Đang gửi...`;
@@ -829,42 +1010,73 @@ function executeRecovery() {
 
 // ================= HR (tenant) =================
 function renderHr() {
-    const rows = DATA.operators.filter(o => o.tenantId === myTenant().id && !o.recovered);
-    document.getElementById('hr-table-body').innerHTML = rows.map(op => `
+    const allRows = DATA.operators.filter(o => o.tenantId === myTenant().id && !o.recovered);
+    if (!allRows.length) { document.getElementById('hr-table-body').innerHTML = emptyStateRow(3, 'fa-users', 'Chưa có nhân sự nào trong tổ chức.'); return; }
+    const { rows, total, loadMoreRow } = applyListControls(allRows, 'hr', 'renderHr()', {
+        searchId: 'hr-search', searchFn: (o, q) => o.name.toLowerCase().includes(q),
+        sortId: 'hr-sort', sortFns: {
+            name: (a, b) => a.name.localeCompare(b.name),
+            stake: (a, b) => b.stakeEth - a.stakeEth,
+            status: (a, b) => Number(b.isActive) - Number(a.isActive)
+        }
+    });
+    document.getElementById('hr-table-body').innerHTML = !total ? emptyStateRow(3, 'fa-magnifying-glass', 'Không tìm thấy nhân viên phù hợp.') : rows.map(op => `
         <tr class="border-b border-slate-100 hover:bg-slate-50">
-            <td class="p-4"><p class="font-bold text-slate-800 text-sm">${op.name}</p>${op.flaggedNote ? `<p class="text-xs text-amber-600">${op.flaggedNote}</p>` : ''}</td>
+            <td class="p-4"><p class="font-bold text-slate-800 text-sm">${op.name}</p><p class="flex items-center gap-1 text-xs font-mono text-slate-400 mt-0.5"><span>${op.address}</span>${copyBtnHtml(op.address)}</p>${op.flaggedNote ? `<p class="text-xs text-amber-600 mt-0.5">${op.flaggedNote}</p>` : ''}</td>
             <td class="p-4 text-sm font-bold text-slate-700">${fmtEth(op.stakeEth)} ETH</td>
-            <td class="p-4"><button onclick="toggleHrActive('${op.id}')" class="${op.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} px-3 py-1 rounded text-xs font-bold">${op.isActive ? 'HOẠT ĐỘNG' : 'BẬT HĐ'}</button></td>
-        </tr>`).join('');
+            <td class="p-4"><button onclick="toggleHrActive(this, '${op.id}')" class="${op.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} px-3 py-1 rounded text-xs font-bold">${op.isActive ? 'HOẠT ĐỘNG' : 'BẬT HĐ'}</button></td>
+        </tr>`).join('') + loadMoreRow;
 }
 
-function toggleHrActive(operatorId) {
+function toggleHrActive(btn, operatorId) {
     const op = DATA.operators.find(o => o.id === operatorId);
     if (!op.isActive && !op.stakeEth) { showToast("Lỗi", "Ví này chưa từng đặt cọc — không có gì để kích hoạt.", "red"); return; }
-    op.isActive = !op.isActive;
-    if (op.isActive) op.flaggedNote = null;
-    renderHr();
-    showToast("Thành công", op.isActive ? "Đã kích hoạt." : "Đã tạm ngưng hoạt động.");
+    btn.disabled = true;
+    btn.innerHTML = `<div class="loader border-slate-500 border-top-transparent h-3 w-3"></div>`;
+    setTimeout(() => {
+        op.isActive = !op.isActive;
+        if (op.isActive) op.flaggedNote = null;
+        renderHr();
+        showToast("Thành công", op.isActive ? "Đã kích hoạt." : "Đã tạm ngưng hoạt động.");
+    }, 500);
 }
 
 // ================= SLASH (tenant) =================
 function renderSlash() {
-    const rows = DATA.operators.filter(o => o.tenantId === myTenant().id && o.isActive);
-    document.getElementById('slash-table-body').innerHTML = rows.map(op => `
+    const allRows = DATA.operators.filter(o => o.tenantId === myTenant().id && o.isActive);
+    if (!allRows.length) { document.getElementById('slash-table-body').innerHTML = emptyStateRow(4, 'fa-gavel', 'Không có nhân viên đang hoạt động để xử phạt.'); return; }
+    const { rows, total, loadMoreRow } = applyListControls(allRows, 'slash', 'renderSlash()', {
+        searchId: 'slash-search', searchFn: (o, q) => o.name.toLowerCase().includes(q),
+        sortId: 'slash-sort', sortFns: { name: (a, b) => a.name.localeCompare(b.name), stake: (a, b) => b.stakeEth - a.stakeEth }
+    });
+    document.getElementById('slash-table-body').innerHTML = (!total ? emptyStateRow(4, 'fa-magnifying-glass', 'Không tìm thấy nhân viên phù hợp.') : rows.map(op => `
         <tr class="border-b border-slate-100" id="row-operator-${op.id}">
-            <td class="p-4"><p class="font-semibold text-sm">${op.name}</p>${op.flaggedNote ? `<p class="text-xs text-red-500"><i class="fa-solid fa-flag"></i> ${op.flaggedNote}</p>` : ''}</td>
+            <td class="p-4"><p class="font-semibold text-sm">${op.name}</p><p class="flex items-center gap-1 text-xs font-mono text-slate-400 mt-0.5"><span>${op.address}</span>${copyBtnHtml(op.address)}</p>${op.flaggedNote ? `<p class="text-xs text-red-500 mt-0.5"><i class="fa-solid fa-flag"></i> ${op.flaggedNote}</p>` : ''}</td>
             <td class="p-4"><span class="font-bold" id="op-${op.id}-stake">${fmtEth(op.stakeEth)} ETH</span></td>
             <td class="p-4" id="op-${op.id}-status"><span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">HOẠT ĐỘNG</span></td>
             <td class="p-4 text-right" id="op-${op.id}-actions">
                 <div class="flex justify-end relative">
                     <button onclick="toggleMenu('slash-menu-${op.id}')" class="bg-slate-100 px-3 py-2 rounded-lg text-sm"><i class="fa-solid fa-gavel"></i> Phạt</button>
                     <div id="slash-menu-${op.id}" class="hidden absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-xl z-20 text-left overflow-hidden">
-                        <button onclick="executeSlash('${op.id}','hard')" class="w-full text-left px-4 py-3 hover:bg-red-50 text-sm text-red-600 font-bold border-b border-slate-100">Hard-slash: Tịch thu 100%</button>
-                        ${DATA.violationPenalties.map(p => `<button onclick="executeSlash('${op.id}','soft',${p.code})" class="w-full text-left px-4 py-3 hover:bg-amber-50 text-sm text-amber-700">Soft-slash: ${p.label} (${p.bps / 100}%)</button>`).join('')}
+                        <button onclick="confirmSlash('${op.id}','hard')" class="w-full text-left px-4 py-3 hover:bg-red-50 text-sm text-red-600 font-bold border-b border-slate-100">Hard-slash: Tịch thu 100%</button>
+                        ${DATA.violationPenalties.map(p => `<button onclick="confirmSlash('${op.id}','soft',${p.code})" class="w-full text-left px-4 py-3 hover:bg-amber-50 text-sm text-amber-700">Soft-slash: ${p.label} (${p.bps / 100}%)</button>`).join('')}
                     </div>
                 </div>
             </td>
-        </tr>`).join('');
+        </tr>`).join('')) + loadMoreRow;
+}
+
+function confirmSlash(operatorId, mode, code) {
+    toggleMenu('slash-menu-' + operatorId);
+    const op = DATA.operators.find(o => o.id === operatorId);
+    const penalty = mode === 'soft' ? DATA.violationPenalties.find(p => p.code === code) : null;
+    const desc = mode === 'hard' ? 'tịch thu 100% tiền cọc' : `trừ ${penalty.bps / 100}% tiền cọc (${penalty.label})`;
+    askConfirm(
+        "Xác nhận xử phạt",
+        `Bạn sắp ${desc} của "${op.name}". Hành động này không thể hoàn tác.`,
+        () => executeSlash(operatorId, mode, code),
+        "Xác nhận phạt"
+    );
 }
 
 function executeSlash(operatorId, mode, code) {
@@ -896,6 +1108,15 @@ function executeSlash(operatorId, mode, code) {
 // ================= CONFIG (tenant) =================
 let configWhitelistDocType = null;
 
+function switchConfigTab(tab) {
+    ['general', 'cosign', 'whitelist', 'penalty'].forEach(t => {
+        document.getElementById('config-tab-' + t).classList.toggle('hidden', t !== tab);
+        document.getElementById('config-tab-btn-' + t).className = t === tab
+            ? 'px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-white whitespace-nowrap'
+            : 'px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap';
+    });
+}
+
 function renderConfig() {
     const t = myTenant();
     document.getElementById('cfg-minstake-range').value = t.minStakeEth;
@@ -905,11 +1126,11 @@ function renderConfig() {
 
     document.getElementById('cosign-policy-table-body').innerHTML = DATA.coSignPolicies.map(p => `
         <tr class="border-b border-slate-100">
-            <td class="p-3 font-medium text-sm">${p.label} <span class="text-xs text-slate-400 font-mono">#${p.docType}</span></td>
-            <td class="p-3 text-center"><input type="checkbox" id="policy-enabled-${p.docType}" ${p.enabled ? 'checked' : ''} onchange="toggleCoSignPolicyRow(${p.docType}, this.checked)" class="w-4 h-4"></td>
-            <td class="p-3"><input type="number" min="1" id="policy-minsigners-${p.docType}" value="${p.minSigners}" ${p.enabled ? '' : 'disabled'} class="w-16 px-2 py-1 border ${p.enabled ? 'border-slate-300' : 'bg-slate-100 border-slate-200'} rounded text-center text-sm font-bold"></td>
-            <td class="p-3"><input type="number" min="0" step="0.5" id="policy-minstake-${p.docType}" value="${p.minStakeEth}" ${p.enabled ? '' : 'disabled'} class="w-20 px-2 py-1 border ${p.enabled ? 'border-slate-300' : 'bg-slate-100 border-slate-200'} rounded text-center text-sm font-bold"></td>
-            <td class="p-3">${DATA.roleCatalog.map(r => `<label class="inline-flex items-center gap-1 mr-3 text-xs ${p.enabled ? 'text-slate-600' : 'text-slate-300'}"><input type="checkbox" id="policy-role-${p.docType}-${r.roleId}" ${p.requiredRoleIds.includes(r.roleId) ? 'checked' : ''} ${p.enabled ? '' : 'disabled'} class="w-3.5 h-3.5">${r.label}</label>`).join('')}</td>
+            <td class="p-3 font-medium text-sm" data-label="Loại Chứng Chỉ">${p.label} <span class="text-xs text-slate-400 font-mono">#${p.docType}</span></td>
+            <td class="p-3 text-center" data-label="Bật Đồng Ký"><input type="checkbox" id="policy-enabled-${p.docType}" ${p.enabled ? 'checked' : ''} onchange="toggleCoSignPolicyRow(${p.docType}, this.checked)" class="w-4 h-4"></td>
+            <td class="p-3" data-label="Số Chữ Ký Tối Thiểu"><input type="number" min="1" id="policy-minsigners-${p.docType}" value="${p.minSigners}" ${p.enabled ? '' : 'disabled'} class="w-16 px-2 py-1 border ${p.enabled ? 'border-slate-300' : 'bg-slate-100 border-slate-200'} rounded text-center text-sm font-bold"></td>
+            <td class="p-3" data-label="Cọc Tối Thiểu (ETH)"><input type="number" min="0" step="0.5" id="policy-minstake-${p.docType}" value="${p.minStakeEth}" ${p.enabled ? '' : 'disabled'} class="w-20 px-2 py-1 border ${p.enabled ? 'border-slate-300' : 'bg-slate-100 border-slate-200'} rounded text-center text-sm font-bold"></td>
+            <td class="p-3" data-label="Vai Trò Bắt Buộc">${DATA.roleCatalog.map(r => `<label class="inline-flex items-center gap-1 mr-3 text-xs ${p.enabled ? 'text-slate-600' : 'text-slate-300'}"><input type="checkbox" id="policy-role-${p.docType}-${r.roleId}" ${p.requiredRoleIds.includes(r.roleId) ? 'checked' : ''} ${p.enabled ? '' : 'disabled'} class="w-3.5 h-3.5">${r.label}</label>`).join('')}</td>
         </tr>`).join('');
 
     if (configWhitelistDocType === null || !DATA.coSignPolicies.some(p => p.docType === configWhitelistDocType)) {
@@ -952,11 +1173,20 @@ function addCoSignPolicy() {
     const label = document.getElementById('new-doctype-label').value.trim();
     if (!docType || docType <= 0 || !label) { showToast("Lỗi", "Nhập mã loại chứng chỉ (số) và tên hợp lệ.", "red"); return; }
     if (DATA.coSignPolicies.some(p => p.docType === docType)) { showToast("Lỗi", "Mã loại chứng chỉ này đã tồn tại.", "red"); return; }
-    DATA.coSignPolicies.push({ docType, label, enabled: false, minSigners: 1, minStakeEth: 0, requiredRoleIds: [] });
-    document.getElementById('new-doctype-id').value = '';
-    document.getElementById('new-doctype-label').value = '';
-    renderConfig();
-    showToast("Thành công", `Đã tạo loại chứng chỉ "${label}".`);
+    const btn = document.getElementById('btn-add-doctype');
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div>`;
+    setTimeout(() => {
+        DATA.coSignPolicies.push({ docType, label, enabled: false, minSigners: 1, minStakeEth: 0, requiredRoleIds: [] });
+        document.getElementById('new-doctype-id').value = '';
+        document.getElementById('new-doctype-label').value = '';
+        renderConfig();
+        switchConfigTab('cosign');
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+        showToast("Thành công", `Đã tạo loại chứng chỉ "${label}".`);
+    }, 500);
 }
 
 function changeWhitelistDocType(docType) {
@@ -966,8 +1196,12 @@ function changeWhitelistDocType(docType) {
 
 function renderWhitelistTable() {
     const docType = configWhitelistDocType;
-    const rows = DATA.operators.filter(o => o.tenantId === myTenant().id && !o.recovered);
-    document.getElementById('whitelist-table-body').innerHTML = rows.map(op => {
+    const allRows = DATA.operators.filter(o => o.tenantId === myTenant().id && !o.recovered);
+    if (!allRows.length) { document.getElementById('whitelist-table-body').innerHTML = emptyStateRow(3, 'fa-users', 'Chưa có nhân sự nào trong tổ chức.'); return; }
+    const { rows, total, loadMoreRow } = applyListControls(allRows, 'whitelist', 'renderWhitelistTable()', {
+        searchId: 'whitelist-search', searchFn: (o, q) => o.name.toLowerCase().includes(q)
+    });
+    document.getElementById('whitelist-table-body').innerHTML = (!total ? emptyStateRow(3, 'fa-magnifying-glass', 'Không tìm thấy nhân viên phù hợp.') : rows.map(op => {
         const wl = whitelistEntry(docType, op.id);
         return `<tr class="border-b border-slate-100">
             <td class="p-3 text-sm font-medium">${op.name}</td>
@@ -976,7 +1210,7 @@ function renderWhitelistTable() {
                 ${DATA.roleCatalog.map(r => `<option value="${r.roleId}" ${wl && wl.roleId === r.roleId ? 'selected' : ''}>${r.label}</option>`).join('')}
             </select></td>
         </tr>`;
-    }).join('');
+    }).join('')) + loadMoreRow;
 }
 
 function toggleCoSignWhitelist(docType, operatorId, checked) {
@@ -1001,12 +1235,21 @@ function addViolationPenalty() {
     const pct = Number(document.getElementById('penalty-bps-input').value);
     if (!code || !label || !pct || pct <= 0 || pct > 100) { showToast("Lỗi", "Điền đủ mã lỗi, mô tả, % hợp lệ (0-100).", "red"); return; }
     if (DATA.violationPenalties.some(p => p.code === code)) { showToast("Lỗi", "Mã lỗi đã tồn tại.", "red"); return; }
-    DATA.violationPenalties.push({ code, label, bps: pct * 100 });
-    document.getElementById('penalty-code-input').value = '';
-    document.getElementById('penalty-label-input').value = '';
-    document.getElementById('penalty-bps-input').value = '';
-    renderConfig();
-    showToast("Thành công", "Đã thêm mức phạt mới.");
+    const btn = document.getElementById('btn-add-penalty');
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div>`;
+    setTimeout(() => {
+        DATA.violationPenalties.push({ code, label, bps: pct * 100 });
+        document.getElementById('penalty-code-input').value = '';
+        document.getElementById('penalty-label-input').value = '';
+        document.getElementById('penalty-bps-input').value = '';
+        renderConfig();
+        switchConfigTab('penalty');
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+        showToast("Thành công", "Đã thêm mức phạt mới.");
+    }, 500);
 }
 
 function saveConfig() {
@@ -1031,13 +1274,28 @@ function saveConfig() {
 
 // ================= REVOKE (tenant) =================
 function renderRevoke() {
-    const docs = DATA.documents.filter(d => d.tenantId === myTenant().id);
-    document.getElementById('revoke-table-body').innerHTML = docs.map(d => `
+    const allDocs = DATA.documents.filter(d => d.tenantId === myTenant().id);
+    if (!allDocs.length) { document.getElementById('revoke-table-body').innerHTML = emptyStateRow(3, 'fa-file-circle-xmark', 'Chưa có chứng từ nào được phát hành.'); return; }
+    const { rows: docs, total, loadMoreRow } = applyListControls(allDocs, 'revoke', 'renderRevoke()', {
+        searchId: 'revoke-search', searchFn: (d, q) => d.id.toLowerCase().includes(q),
+        sortId: 'revoke-sort', sortFns: { status: (a, b) => (a.status === 'revoked' ? 1 : 0) - (b.status === 'revoked' ? 1 : 0) }
+    });
+    document.getElementById('revoke-table-body').innerHTML = (!total ? emptyStateRow(3, 'fa-magnifying-glass', 'Không tìm thấy chứng từ phù hợp.') : docs.map(d => `
         <tr class="border-b border-slate-100 ${d.status === 'revoked' ? 'bg-red-50/50' : ''}">
             <td class="p-4 font-mono text-sm">${d.id}</td>
             <td class="p-4">${d.status === 'valid' ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">ĐANG CÓ HIỆU LỰC</span>' : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold"><i class="fa-solid fa-ban"></i> ĐÃ THU HỒI</span>'}</td>
-            <td class="p-4 text-right">${d.status === 'valid' ? `<button onclick="executeRevoke('${d.id}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg text-sm ml-auto transition-colors"><i class="fa-solid fa-ban"></i> Thu hồi</button>` : '<span class="text-xs font-bold text-slate-400 uppercase">Đã xử lý</span>'}</td>
-        </tr>`).join('');
+            <td class="p-4 text-right">${d.status === 'valid' ? `<button onclick="confirmRevoke('${d.id}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg text-sm ml-auto transition-colors"><i class="fa-solid fa-ban"></i> Thu hồi</button>` : '<span class="text-xs font-bold text-slate-400 uppercase">Đã xử lý</span>'}</td>
+        </tr>`).join('')) + loadMoreRow;
+}
+
+function confirmRevoke(docId) {
+    const doc = DATA.documents.find(d => d.id === docId);
+    askConfirm(
+        "Xác nhận thu hồi chứng chỉ",
+        `Chứng chỉ "${doc.id}" của ${doc.owner} sẽ vĩnh viễn mất hiệu lực và không thể khôi phục.`,
+        () => executeRevoke(docId),
+        "Xác nhận thu hồi"
+    );
 }
 
 function executeRevoke(docId) {
@@ -1060,19 +1318,21 @@ function renderRevokePending(docId) {
 
 // ================= PLATFORM (protocol admin) =================
 function renderPlatform() {
+    clearFieldErrors(['new-tenant-id', 'new-tenant-name', 'new-tenant-admin', 'new-tenant-opmanager', 'new-tenant-treasury', 'new-tenant-minstake', 'new-tenant-cooldown']);
+    showFormError('platform-form-errors', []);
     const apps = DATA.tenantApplications;
     document.getElementById('tenant-applications-list').innerHTML = apps.length
         ? apps.map(a => `
             <div class="p-6 border-b border-slate-100 flex items-start justify-between gap-4">
                 <div>
                     <p class="font-bold text-slate-800">${a.name}</p>
-                    <p class="text-xs text-slate-500 font-mono mt-1">Admin: ${a.admin} · QL Vận hành: ${a.opManager} · Treasury: ${a.treasury}</p>
+                    <p class="text-xs text-slate-500 font-mono mt-1 flex flex-wrap items-center gap-x-1">Admin: ${a.admin}${copyBtnHtml(a.admin)} · QL Vận hành: ${a.opManager}${copyBtnHtml(a.opManager)} · Treasury: ${a.treasury}${copyBtnHtml(a.treasury)}</p>
                     <p class="text-xs text-slate-500 mt-1">Đề xuất cọc tối thiểu: ${fmtEth(a.minStakeEth)} ETH</p>
                     ${a.note ? `<p class="text-sm text-slate-600 mt-2 bg-slate-50 rounded-lg p-2">${a.note}</p>` : ''}
                 </div>
                 <div class="flex gap-2 shrink-0">
-                    <button onclick="approveApplication('${a.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-check"></i> Duyệt</button>
-                    <button onclick="rejectApplication('${a.id}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg text-sm font-bold">Từ chối</button>
+                    <button onclick="approveApplication(this, '${a.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-check"></i> Duyệt</button>
+                    <button onclick="rejectApplication(this, '${a.id}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg text-sm font-bold">Từ chối</button>
                 </div>
             </div>`).join('')
         : `<div class="p-8 text-center text-slate-400 text-sm">Không có yêu cầu nào đang chờ.</div>`;
@@ -1082,16 +1342,20 @@ function renderPlatform() {
             <td class="p-4 font-bold text-blue-800">${t.name}</td>
             <td class="p-4">${t.isActive ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">ACTIVE</span>' : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">SUSPENDED</span>'}</td>
             <td class="p-4 text-right">${t.isActive
-                ? `<button onclick="toggleTenantStatus('${t.id}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg text-sm flex items-center gap-2 ml-auto transition-colors"><i class="fa-solid fa-power-off"></i> Đình chỉ</button>`
-                : `<button onclick="toggleTenantStatus('${t.id}')" class="border border-emerald-200 text-emerald-600 hover:bg-emerald-50 px-3 py-2 rounded-lg text-sm flex items-center gap-2 ml-auto transition-colors"><i class="fa-solid fa-play"></i> Khôi phục HĐ</button>`}</td>
+                ? `<button onclick="toggleTenantStatus(this, '${t.id}')" class="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg text-sm flex items-center gap-2 ml-auto transition-colors"><i class="fa-solid fa-power-off"></i> Đình chỉ</button>`
+                : `<button onclick="toggleTenantStatus(this, '${t.id}')" class="border border-emerald-200 text-emerald-600 hover:bg-emerald-50 px-3 py-2 rounded-lg text-sm flex items-center gap-2 ml-auto transition-colors"><i class="fa-solid fa-play"></i> Khôi phục HĐ</button>`}</td>
         </tr>`).join('');
 }
 
-function toggleTenantStatus(tenantId) {
+function toggleTenantStatus(btn, tenantId) {
     const t = DATA.tenants.find(x => x.id === tenantId);
-    t.isActive = !t.isActive;
-    renderPlatform();
-    showToast("Thành công", "Đã cập nhật.", t.isActive ? "emerald" : "red");
+    btn.disabled = true;
+    btn.innerHTML = `<div class="loader border-slate-500 border-top-transparent h-3 w-3 ml-auto"></div>`;
+    setTimeout(() => {
+        t.isActive = !t.isActive;
+        renderPlatform();
+        showToast("Thành công", "Đã cập nhật.", t.isActive ? "emerald" : "red");
+    }, 500);
 }
 
 function slugify(name) {
@@ -1108,6 +1372,9 @@ function validateNewTenant({ id, name, admin, opManager, treasury, minStake, coo
 }
 
 function createTenant() {
+    const ids = ['new-tenant-id', 'new-tenant-name', 'new-tenant-admin', 'new-tenant-opmanager', 'new-tenant-treasury', 'new-tenant-minstake', 'new-tenant-cooldown'];
+    clearFieldErrors(ids);
+    showFormError('platform-form-errors', []);
     const id = document.getElementById('new-tenant-id').value.trim();
     const name = document.getElementById('new-tenant-name').value.trim();
     const admin = document.getElementById('new-tenant-admin').value.trim();
@@ -1117,7 +1384,19 @@ function createTenant() {
     const cooldown = Number(document.getElementById('new-tenant-cooldown').value);
 
     const error = validateNewTenant({ id, name, admin, opManager, treasury, minStake, cooldown });
-    if (error) { showToast("Lỗi", error, "red"); return; }
+    if (error) {
+        if (!id) setFieldError('new-tenant-id');
+        if (!name) setFieldError('new-tenant-name');
+        if (!admin) setFieldError('new-tenant-admin');
+        if (!opManager) setFieldError('new-tenant-opmanager');
+        if (!treasury) setFieldError('new-tenant-treasury');
+        if (admin && (admin === opManager || admin === treasury || opManager === treasury)) ['new-tenant-admin', 'new-tenant-opmanager', 'new-tenant-treasury'].forEach(setFieldError);
+        if (!minStake || minStake <= 0) setFieldError('new-tenant-minstake');
+        if (!cooldown || cooldown <= 0) setFieldError('new-tenant-cooldown');
+        showFormError('platform-form-errors', [error]);
+        showToast("Lỗi", error, "red");
+        return;
+    }
 
     const btn = document.getElementById('btn-create-tenant');
     btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div>`;
@@ -1130,39 +1409,53 @@ function createTenant() {
     }, 800);
 }
 
-function approveApplication(appId) {
+function approveApplication(btn, appId) {
     const app = DATA.tenantApplications.find(a => a.id === appId);
     if (!app) return;
     const id = slugify(app.name);
     const error = validateNewTenant({ id, name: app.name, admin: app.admin, opManager: app.opManager, treasury: app.treasury, minStake: app.minStakeEth, cooldown: 24 });
     if (error) { showToast("Lỗi", `Không thể duyệt: ${error}`, "red"); return; }
 
-    DATA.tenants.push({ id, name: app.name, admin: app.admin, operatorManager: app.opManager, treasury: app.treasury, isActive: true, minStakeEth: app.minStakeEth, unstakeCooldownHours: 24, stakeTotalEth: 0 });
-    DATA.tenantApplications = DATA.tenantApplications.filter(a => a.id !== appId);
-    renderPlatform();
-    showToast("Thành công", `Đã duyệt & khởi tạo "${app.name}" trên chuỗi.`);
+    btn.disabled = true;
+    btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div>`;
+    setTimeout(() => {
+        DATA.tenants.push({ id, name: app.name, admin: app.admin, operatorManager: app.opManager, treasury: app.treasury, isActive: true, minStakeEth: app.minStakeEth, unstakeCooldownHours: 24, stakeTotalEth: 0 });
+        DATA.tenantApplications = DATA.tenantApplications.filter(a => a.id !== appId);
+        renderPlatform();
+        showToast("Thành công", `Đã duyệt & khởi tạo "${app.name}" trên chuỗi.`);
+    }, 700);
 }
 
-function rejectApplication(appId) {
+function rejectApplication(btn, appId) {
     const app = DATA.tenantApplications.find(a => a.id === appId);
-    DATA.tenantApplications = DATA.tenantApplications.filter(a => a.id !== appId);
-    renderPlatform();
-    showToast("Đã từ chối", `Yêu cầu của "${app.name}" đã bị từ chối.`, "amber");
+    btn.disabled = true;
+    btn.innerHTML = `<div class="loader border-red-600 border-top-transparent h-4 w-4"></div>`;
+    setTimeout(() => {
+        DATA.tenantApplications = DATA.tenantApplications.filter(a => a.id !== appId);
+        renderPlatform();
+        showToast("Đã từ chối", `Yêu cầu của "${app.name}" đã bị từ chối.`, "amber");
+    }, 500);
 }
 
 // ================= TREASURY (tenant) =================
 function renderTreasury() {
     const t = myTenant();
-    document.getElementById('treasury-current').innerText = t.treasury;
+    document.getElementById('treasury-current').innerHTML = `<span>${t.treasury}</span>${copyBtnHtml(t.treasury)}`;
     document.getElementById('treasury-input').value = '';
+    clearFieldErrors(['treasury-input']);
+    showFormError('treasury-form-errors', []);
 }
 
 function changeTreasury() {
+    clearFieldErrors(['treasury-input']);
+    showFormError('treasury-form-errors', []);
     const t = myTenant();
     const input = document.getElementById('treasury-input');
     const val = input.value.trim();
-    if (!val) { showToast("Lỗi", "Nhập địa chỉ ví quỹ mới.", "red"); return; }
-    if (val === t.admin || val === t.operatorManager) { showToast("Lỗi", "Treasury không được trùng Admin hoặc QL Vận hành.", "red"); return; }
+    let error = null;
+    if (!val) error = 'Nhập địa chỉ ví quỹ mới.';
+    else if (val === t.admin || val === t.operatorManager) error = 'Treasury không được trùng Admin hoặc QL Vận hành.';
+    if (error) { setFieldError('treasury-input'); showFormError('treasury-form-errors', [error]); showToast("Lỗi", error, "red"); return; }
     const btn = document.getElementById('btn-save-treasury');
     btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div>`;
     setTimeout(() => {
