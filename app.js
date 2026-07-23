@@ -8,13 +8,13 @@ const roleConfig = {
     'admin': { title: '<i class="fa-solid fa-server text-purple-400"></i> Admin Nền Tảng', defaultView: 'platform' }
 };
 
-const viewIds = ['verify', 'my-docs', 'account', 'explorer', 'issue', 'cosign', 'slash', 'recovery', 'revoke', 'platform', 'stake', 'config', 'hr', 'security', 'treasury', 'emergency-recovery', 'profile', 'join', 'apply-tenant'];
-const viewBgClass = { revoke: 'bg-amber-500', treasury: 'bg-amber-500', platform: 'bg-purple-600', explorer: 'bg-emerald-600', profile: 'bg-sky-600', join: 'bg-emerald-600', 'apply-tenant': 'bg-purple-600', account: 'bg-sky-600' };
-const viewIconIdleClass = { revoke: 'text-amber-500', treasury: 'text-amber-500', platform: 'text-purple-500', stake: 'text-blue-400', security: 'text-indigo-400', recovery: 'text-amber-500', slash: 'text-red-400', config: 'text-emerald-400', explorer: 'text-emerald-400', 'emergency-recovery': 'text-amber-500', profile: 'text-sky-400', join: 'text-emerald-400', 'apply-tenant': 'text-purple-400', account: 'text-sky-400' };
+const viewIds = ['verify', 'my-docs', 'account', 'explorer', 'issue', 'cosign', 'slash', 'recovery', 'revoke', 'platform', 'stake', 'config', 'hr', 'security', 'treasury', 'emergency-recovery', 'join', 'apply-tenant'];
+const viewBgClass = { revoke: 'bg-amber-500', treasury: 'bg-amber-500', platform: 'bg-purple-600', explorer: 'bg-emerald-600', join: 'bg-emerald-600', 'apply-tenant': 'bg-purple-600', account: 'bg-sky-600' };
+const viewIconIdleClass = { revoke: 'text-amber-500', treasury: 'text-amber-500', platform: 'text-purple-500', stake: 'text-blue-400', security: 'text-indigo-400', recovery: 'text-amber-500', slash: 'text-red-400', config: 'text-emerald-400', explorer: 'text-emerald-400', 'emergency-recovery': 'text-amber-500', join: 'text-emerald-400', 'apply-tenant': 'text-purple-400', account: 'text-sky-400' };
 
 const renderers = {
     'my-docs': renderMyDocs, account: renderAccount, verify: resetVerify, explorer: renderExplorer, issue: renderIssue,
-    cosign: renderCosign, stake: renderStake, security: renderSecurity, recovery: renderRecovery, profile: renderProfile,
+    cosign: renderCosign, stake: renderStake, security: renderSecurity, recovery: renderRecovery,
     join: renderJoin, 'apply-tenant': renderApplyTenant,
     hr: renderHr, slash: renderSlash, config: renderConfig, revoke: renderRevoke,
     platform: renderPlatform, treasury: renderTreasury, 'emergency-recovery': renderEmergencyRecovery
@@ -25,25 +25,47 @@ const renderers = {
 const NO_WALLET_VIEWS = ['verify', 'explorer'];
 // 'recovery' is intentionally NOT gated on active-operator status: recoverOperatorByDelegate
 // requires the delegate's wallet to NOT already be an active operator (opposite precondition).
-const OPERATOR_GATED_VIEWS = ['issue', 'cosign', 'stake', 'security', 'profile'];
+// 'account' is not gated here either — it merges profile editing (gated inline, only shown
+// when active) with read-only identity info that any connected wallet, including
+// governance/Protocol Admin ones, should be able to see.
+const OPERATOR_GATED_VIEWS = ['issue', 'cosign', 'stake', 'security'];
 
-let connectedWallet = null; // { id, label, address } — which demo wallet is connected, or null
+let connectedWallet = null; // { id, label, address, kind, operatorId? } — which wallet is connected, or null
+
+// Every distinct address that actually exists in the system right now — operators, tenant
+// governance (admin/operatorManager/treasury), and Protocol Admin. Rebuilt on demand so it
+// stays current as new tenants/operators appear (join, tenant creation, recovery...).
+function allSystemWallets() {
+    const wallets = [];
+    DATA.operators.filter(o => !o.recovered).forEach(o => {
+        wallets.push({ id: `op-${o.id}`, label: o.name, address: o.address, kind: 'operator', operatorId: o.id });
+    });
+    DATA.tenants.forEach(t => {
+        wallets.push({ id: `tadmin-${t.id}`, label: `${t.name} — Admin`, address: t.admin, kind: 'tenant-admin', tenantId: t.id });
+        wallets.push({ id: `topmgr-${t.id}`, label: `${t.name} — QL Vận Hành`, address: t.operatorManager, kind: 'tenant-opmanager', tenantId: t.id });
+        wallets.push({ id: `ttreasury-${t.id}`, label: `${t.name} — Treasury`, address: t.treasury, kind: 'treasury', tenantId: t.id });
+    });
+    wallets.push({ id: 'protocol-admin', label: 'Protocol Admin', address: DATA.protocolAdminAddress, kind: 'protocol-admin' });
+    return wallets;
+}
 
 async function init() {
     DATA = await fetch('data.json').then(r => r.json());
-    document.getElementById('connect-wallet-list').innerHTML = DATA.demoWallets.map(w => `
+    switchRole('public');
+}
+
+function openConnectModal() {
+    document.getElementById('connect-wallet-list').innerHTML = allSystemWallets().map(w => `
         <button onclick="connectWallet('${w.id}')" class="w-full text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl p-3 flex items-center justify-between gap-2 transition-colors">
             <span class="text-sm font-medium text-white">${w.label}</span>
             <span class="text-xs font-mono text-slate-400">${w.address}</span>
         </button>`).join('');
-    switchRole('public');
+    document.getElementById('connect-gate').classList.remove('hidden');
 }
-
-function openConnectModal() { document.getElementById('connect-gate').classList.remove('hidden'); }
 function closeConnectModal() { document.getElementById('connect-gate').classList.add('hidden'); }
 
 function connectWallet(walletId) {
-    connectedWallet = DATA.demoWallets.find(w => w.id === walletId);
+    connectedWallet = allSystemWallets().find(w => w.id === walletId);
     closeConnectModal();
     document.getElementById('wallet-address-label').innerText = connectedWallet.label;
     document.getElementById('wallet-connected-badge').classList.remove('hidden');
@@ -71,7 +93,9 @@ function closeSidebar() {
     document.getElementById('sidebar-backdrop').classList.add('hidden');
 }
 
-function me() { return DATA.operators.find(o => o.id === DATA.currentUser.operatorId); }
+// The operator identity of whichever wallet is connected — null if connected as a
+// governance/protocol-admin wallet (those have no operator record of their own).
+function me() { return connectedWallet?.kind === 'operator' ? DATA.operators.find(o => o.id === connectedWallet.operatorId) : null; }
 // The tenant governed by the CONNECTED wallet (Tenant-role dashboards) — not the operator's own tenant.
 function myTenant() {
     const addr = connectedWallet?.address;
@@ -88,7 +112,14 @@ function canAccessRole(roleId) {
     if (!connectedWallet) return false;
     if (roleId === 'admin') return isProtocolAdminWallet();
     if (roleId === 'tenant') return DATA.tenants.some(t => t.admin === connectedWallet.address || t.operatorManager === connectedWallet.address);
-    if (roleId === 'operator') return connectedWallet.id === 'me';
+    if (roleId === 'operator') {
+        if (connectedWallet.kind !== 'operator') return false;
+        const op = DATA.operators.find(o => o.id === connectedWallet.operatorId);
+        // Being listed as an operator record isn't the same as having actually joined — a wallet
+        // that never staked (stakeEth === 0) and isn't active has no real employee identity yet,
+        // it's just the demo's placeholder slot before the user goes through the Join flow.
+        return !!(op && (op.isActive || op.stakeEth > 0));
+    }
     return false;
 }
 function fmtEth(n) { return Number(n).toFixed(2); }
@@ -160,7 +191,13 @@ let currentRoleId = 'public';
 function switchRole(roleId) {
     if (roleId !== 'public' && !connectedWallet) { openConnectModal(); return; }
     if (!canAccessRole(roleId)) {
-        const reasons = { admin: 'Cần kết nối ví Protocol Admin.', tenant: 'Cần kết nối ví đang giữ vai trò Admin/QL Vận hành của một tổ chức.', operator: 'Ví Protocol Admin không được kiêm vai trò Operator.' };
+        const reasons = {
+            admin: 'Cần kết nối ví Protocol Admin.',
+            tenant: 'Cần kết nối ví đang giữ vai trò Admin/QL Vận hành của một tổ chức.',
+            operator: isProtocolAdminWallet()
+                ? 'Ví Protocol Admin không được kiêm vai trò Operator.'
+                : 'Ví này chưa gia nhập tổ chức nào — hãy Gia Nhập Làm Nhân Viên trước.'
+        };
         showToast("Không đủ quyền", reasons[roleId] || 'Ví hiện tại không có quyền này.', "red");
         return;
     }
@@ -215,6 +252,15 @@ function switchView(viewId) {
     if (activeSection) activeSection.classList.remove('hidden');
     renderers[viewId]?.();
 
+    // Sidebar badge must reflect reality the moment the Operator role/menu appears, not only
+    // after the user has already clicked into the Cosign page (which is the only other place
+    // that recomputes it).
+    const cosignBadge = document.getElementById('cosign-badge');
+    if (cosignBadge) {
+        const op = connectedWallet ? me() : null;
+        cosignBadge.innerText = op ? pendingCosignDocs(op).length : 0;
+    }
+
     const needsWallet = !NO_WALLET_VIEWS.includes(viewId) && !connectedWallet;
     document.getElementById('connect-required-overlay').classList.toggle('hidden', !needsWallet);
 
@@ -230,8 +276,9 @@ function switchView(viewId) {
 // nhập/đăng ký thêm nữa — tránh 1 ví ôm nhiều thân phận mâu thuẫn trong demo.
 function identityLockReasonFor(viewId) {
     if (viewId === 'join') {
+        if (isProtocolAdminWallet()) return 'Ví Protocol Admin không được phép giữ vai trò Operator.';
         if (isBusinessOwner()) return 'Ví này đang giữ vai trò quản trị một doanh nghiệp — không thể đồng thời đăng ký làm nhân viên phát hành.';
-        if (me().isActive) return `Ví này đã là nhân viên đang hoạt động tại ${operatorTenant().name}. Xem tại Hồ Sơ Của Tôi / Tiền Cọc.`;
+        if (me()?.isActive) return `Ví này đã là nhân viên đang hoạt động tại ${operatorTenant().name}. Xem tại Hồ Sơ Của Tôi / Tiền Cọc.`;
     }
     if (viewId === 'apply-tenant' && isBusinessOwner()) {
         return 'Ví này đã giữ vai trò quản trị một doanh nghiệp trên hệ thống — không cần đăng ký thêm.';
@@ -254,7 +301,10 @@ function toggleMenu(id) { document.getElementById(id).classList.toggle('hidden')
 
 // ================= MY DOCS (public) =================
 function renderMyDocs() {
-    const docs = DATA.documents.filter(d => d.owner === DATA.currentUser.publicName);
+    const op = me();
+    const ownerName = op ? op.name : connectedWallet?.label;
+    document.getElementById('my-docs-owner-name').innerText = ownerName || '';
+    const docs = DATA.documents.filter(d => d.owner === ownerName);
     document.getElementById('stat-total').innerText = docs.length;
     document.getElementById('stat-valid').innerText = docs.filter(d => d.status === 'valid').length;
     document.getElementById('stat-revoked').innerText = docs.filter(d => d.status === 'revoked').length;
@@ -293,31 +343,99 @@ function renderMyDocs() {
 
 // ================= ACCOUNT (personal profile — aggregates everything this wallet holds) =================
 function renderAccount() {
-    const isMe = connectedWallet?.id === 'me';
-    document.getElementById('account-name').innerText = isMe ? DATA.currentUser.publicName : connectedWallet.label;
-    document.getElementById('account-address').innerText = connectedWallet.address;
-
     const op = me();
-    document.getElementById('account-operator-status').innerText = !isMe
-        ? 'Ví này chưa từng thao tác với vai trò Operator.'
-        : op.isActive
-            ? `Đang hoạt động tại ${DATA.tenants.find(t => t.id === op.tenantId)?.name || op.tenantId} — cọc ${fmtEth(op.stakeEth)} ETH.`
-            : (op.stakeEth > 0 ? `Đã từng đặt cọc (${fmtEth(op.stakeEth)} ETH) nhưng đang tạm ngưng hoạt động.` : 'Chưa gia nhập tổ chức nào.');
+    switchAccountTab('overview');
+    document.getElementById('account-name').innerText = connectedWallet.label;
+    document.getElementById('account-address').innerText = connectedWallet.address;
+    renderAccountAvatar(connectedWallet.label);
 
     const governance = DATA.tenants.filter(t => [t.admin, t.operatorManager, t.treasury].includes(connectedWallet.address));
+    const badge = document.getElementById('account-role-badge');
+    if (isProtocolAdminWallet()) {
+        badge.innerText = 'Protocol Admin';
+        badge.className = 'text-xs font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700';
+    } else if (governance.length) {
+        badge.innerText = 'Quản trị doanh nghiệp';
+        badge.className = 'text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700';
+    } else if (op?.isActive) {
+        badge.innerText = 'Operator đang hoạt động';
+        badge.className = 'text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700';
+    } else if (op) {
+        badge.innerText = 'Operator tạm ngưng';
+        badge.className = 'text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500';
+    } else {
+        badge.innerText = 'Khách';
+        badge.className = 'text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500';
+    }
+
+    document.getElementById('account-operator-status').innerHTML = !op
+        ? 'Ví này không phải Operator.'
+        : op.isActive
+            ? `Đang hoạt động tại ${DATA.tenants.find(t => t.id === op.tenantId)?.name || op.tenantId} — cọc ${fmtEth(op.stakeEth)} ETH. <button onclick="switchView('stake')" class="text-blue-600 font-semibold hover:underline">Xem cọc →</button>`
+            : (op.stakeEth > 0 ? `Đã từng đặt cọc (${fmtEth(op.stakeEth)} ETH) nhưng đang tạm ngưng hoạt động.` : `Chưa gia nhập tổ chức nào. <button onclick="switchView('join')" class="text-emerald-600 font-semibold hover:underline">Gia nhập ngay →</button>`);
+
     document.getElementById('account-governance-status').innerText = governance.length
-        ? governance.map(t => t.name).join(', ')
+        ? governance.map(t => {
+            const roles = [];
+            if (t.admin === connectedWallet.address) roles.push('Admin');
+            if (t.operatorManager === connectedWallet.address) roles.push('QL Vận Hành');
+            if (t.treasury === connectedWallet.address) roles.push('Treasury');
+            return `${roles.join('/')} tại ${t.name}`;
+        }).join('; ')
         : 'Không giữ vai trò quản trị (Admin/QL Vận hành/Treasury) của tổ chức nào.';
 
-    const docs = isMe ? DATA.documents.filter(d => d.owner === DATA.currentUser.publicName) : [];
-    document.getElementById('account-docs-status').innerText = !isMe
+    const docs = op ? DATA.documents.filter(d => d.owner === op.name) : [];
+    document.getElementById('account-docs-status').innerHTML = !op
         ? 'Không áp dụng cho ví quản trị.'
-        : docs.length ? `${docs.length} chứng từ (${docs.filter(d => d.status === 'valid').length} hợp lệ).` : 'Chưa sở hữu chứng từ nào.';
+        : docs.length ? `${docs.length} chứng từ (${docs.filter(d => d.status === 'valid').length} hợp lệ). <button onclick="switchView('my-docs')" class="text-blue-600 font-semibold hover:underline">Xem tất cả →</button>` : 'Chưa sở hữu chứng từ nào.';
 
-    const delegateFor = isMe ? DATA.operators.filter(o => o.recoveryDelegateId === DATA.currentUser.operatorId && !o.recovered) : [];
-    document.getElementById('account-delegate-status').innerText = !isMe
+    const delegateFor = op ? DATA.operators.filter(o => o.recoveryDelegateId === op.id && !o.recovered) : [];
+    document.getElementById('account-delegate-status').innerHTML = !op
         ? 'Không áp dụng cho ví quản trị.'
-        : delegateFor.length ? `Là ví dự phòng cho: ${delegateFor.map(o => o.name).join(', ')}.` : 'Chưa được ai chỉ định làm ví dự phòng.';
+        : delegateFor.length ? `Là ví dự phòng cho: ${delegateFor.map(o => o.name).join(', ')}. <button onclick="switchView('recovery')" class="text-amber-600 font-semibold hover:underline">Đi tới cứu hộ →</button>` : 'Chưa được ai chỉ định làm ví dự phòng.';
+
+    document.getElementById('account-stat-docs').innerText = docs.length;
+    document.getElementById('account-stat-stake').innerText = `${fmtEth(op ? op.stakeEth : 0)} ETH`;
+    document.getElementById('account-stat-roles').innerText = governance.length;
+    document.getElementById('account-stat-trust').innerText = docs.length
+        ? `${Math.round(docs.filter(d => d.status === 'valid').length / docs.length * 100)}%` : '—';
+
+    renderAccountActivity(op);
+
+    document.getElementById('account-security-delegate-summary').innerText = !op
+        ? 'Không áp dụng cho ví quản trị.'
+        : op.recoveryDelegateId
+            ? `Ví dự phòng hiện tại: ${DATA.operators.find(o => o.id === op.recoveryDelegateId)?.name || op.recoveryDelegateId}.`
+            : 'Chưa thiết lập ví dự phòng.';
+
+    // updateOperatorMetadata requires an active operator — only show the editor then.
+    document.getElementById('account-bio-card').classList.toggle('hidden', !op?.isActive);
+    if (op?.isActive) document.getElementById('profile-bio-input').value = op.bio || '';
+}
+
+// Built entirely from data already tied to this operator (no separate per-wallet event log
+// exists in this demo's data model) — governance-only/guest wallets have nothing derivable, so
+// they correctly fall through to the empty state.
+function renderAccountActivity(op) {
+    const events = [];
+    if (op) {
+        DATA.documents.filter(d => d.issuer === op.name).forEach(d => events.push({
+            icon: 'fa-file-signature', color: 'emerald', time: d.issuedAt,
+            text: `Phát hành chứng chỉ <span class="font-bold">${d.title}</span> cho ${d.owner}.`
+        }));
+        DATA.documents.filter(d => d.owner === op.name).forEach(d => events.push({
+            icon: d.status === 'revoked' ? 'fa-ban' : 'fa-award', color: d.status === 'revoked' ? 'red' : 'blue', time: d.issuedAt,
+            text: d.status === 'revoked' ? `Chứng chỉ <span class="font-bold">${d.title}</span> đã bị thu hồi.` : `Nhận chứng chỉ <span class="font-bold">${d.title}</span> từ ${d.tenantName}.`
+        }));
+        DATA.recoveryAliases.filter(a => a.currentOperatorId === op.id).forEach(a => events.push({
+            icon: 'fa-life-ring', color: 'amber', time: a.recoveredAt,
+            text: `Khôi phục ví thành công tại ${a.tenantName} (${a.reason}).`
+        }));
+    }
+    document.getElementById('account-activity-list').innerHTML = events.map(e =>
+        `<div class="flex gap-4"><div class="w-8 h-8 rounded-full bg-${e.color}-100 text-${e.color}-600 flex items-center justify-center shrink-0"><i class="fa-solid ${e.icon} text-xs"></i></div><div><p class="text-sm font-medium text-slate-700">${e.text}</p><p class="text-xs text-slate-400 mt-1">${e.time}</p></div></div>`
+    ).join('');
+    document.getElementById('account-activity-empty').classList.toggle('hidden', events.length > 0);
 }
 
 // ================= VERIFY (public) =================
@@ -453,7 +571,7 @@ function handleIssue() {
     btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div>`;
     setTimeout(() => {
         const policy = policyFor(docType);
-        const wl = policy && policy.enabled ? whitelistEntry(docType, DATA.currentUser.operatorId) : null;
+        const wl = policy && policy.enabled ? whitelistEntry(docType, me().id) : null;
         const issuerCounts = policy && policy.enabled ? !!(wl && me().stakeEth >= policy.minStakeEth) : true;
         const id = `CERT-${Math.floor(1000 + Math.random() * 9000)}-NEW`;
         const cid = `Qm${Math.random().toString(36).slice(2, 15)}${Math.random().toString(36).slice(2, 15)}`;
@@ -479,8 +597,12 @@ function handleIssue() {
 }
 
 // ================= COSIGN (operator) =================
+function pendingCosignDocs(op) {
+    return DATA.documents.filter(d => d.tenantId === op.tenantId && d.status === 'valid' && !isDocQualified(d));
+}
+
 function renderCosign() {
-    const pending = DATA.documents.filter(d => d.tenantId === me().tenantId && d.status === 'valid' && !isDocQualified(d));
+    const pending = pendingCosignDocs(me());
     document.getElementById('cosign-badge').innerText = pending.length;
     document.getElementById('empty-cosign').classList.toggle('hidden', pending.length > 0);
     document.getElementById('cosign-table-body').innerHTML = pending.map(d => `
@@ -495,7 +617,7 @@ function handleCoSign(docId) {
     const doc = DATA.documents.find(d => d.id === docId);
     const policy = policyFor(doc.docType);
     if (policy && policy.enabled) {
-        const wl = whitelistEntry(doc.docType, DATA.currentUser.operatorId);
+        const wl = whitelistEntry(doc.docType, me().id);
         if (!wl) { showToast("Lỗi", "Bạn chưa được whitelist đồng ký loại chứng chỉ này (cấu hình tại Tham số Hợp Đồng).", "red"); return; }
         if (me().stakeEth < policy.minStakeEth) { showToast("Lỗi", "Cọc của bạn chưa đạt mức tối thiểu để đồng ký loại này.", "red"); return; }
     }
@@ -504,7 +626,7 @@ function handleCoSign(docId) {
     setTimeout(() => {
         doc.coSign.trustedCount += 1;
         if (policy && policy.enabled) {
-            const wl = whitelistEntry(doc.docType, DATA.currentUser.operatorId);
+            const wl = whitelistEntry(doc.docType, me().id);
             if (wl && !doc.coSign.trustedRoleIds.includes(wl.roleId)) doc.coSign.trustedRoleIds.push(wl.roleId);
         }
         const qualified = isDocQualified(doc);
@@ -565,18 +687,21 @@ function topUpStake() {
 // ================= SECURITY (operator) =================
 function renderSecurity() {
     const op = me();
+    const candidates = DATA.operators.filter(o => o.id !== op.id && !o.recovered);
     document.getElementById('delegate-current').innerText = op.recoveryDelegateId
-        ? `Ví dự phòng hiện tại: ${op.recoveryDelegateId}` : 'Chưa thiết lập ví dự phòng.';
-    document.getElementById('delegate-input').value = '';
+        ? `Ví dự phòng hiện tại: ${DATA.operators.find(o => o.id === op.recoveryDelegateId)?.name || op.recoveryDelegateId}`
+        : 'Chưa thiết lập ví dự phòng.';
+    document.getElementById('delegate-input').innerHTML = candidates.map(o =>
+        `<option value="${o.id}" ${o.id === op.recoveryDelegateId ? 'selected' : ''}>${o.name} (${o.address})</option>`).join('');
 }
 
 function saveDelegate() {
     const input = document.getElementById('delegate-input');
-    if (!input.value.trim()) { showToast("Lỗi", "Nhập địa chỉ ví dự phòng.", "red"); return; }
+    if (!input.value) { showToast("Lỗi", "Chọn một ví làm ví dự phòng.", "red"); return; }
     const btn = document.getElementById('btn-save-delegate');
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
     setTimeout(() => {
-        me().recoveryDelegateId = input.value.trim();
+        me().recoveryDelegateId = input.value;
         btn.innerHTML = `Đã Lưu <i class="fa-solid fa-check ml-1"></i>`;
         btn.classList.replace('bg-indigo-600', 'bg-emerald-600');
         renderSecurity();
@@ -585,10 +710,6 @@ function saveDelegate() {
 }
 
 // ================= PROFILE (operator — requires already-active operator) =================
-function renderProfile() {
-    document.getElementById('profile-bio-input').value = me().bio || '';
-}
-
 function saveProfileMetadata() {
     const btn = document.getElementById('btn-save-profile');
     btn.innerHTML = `<div class="loader border-white border-top-transparent h-4 w-4"></div>`;
@@ -670,7 +791,8 @@ function submitTenantApplication() {
 
 // ================= RECOVERY BY DELEGATE (operator) =================
 function renderRecovery() {
-    const lost = DATA.operators.find(o => o.recoveryDelegateId === DATA.currentUser.operatorId && !o.isActive && !o.recovered);
+    const myId = me()?.id;
+    const lost = myId ? DATA.operators.find(o => o.recoveryDelegateId === myId && !o.isActive && !o.recovered) : null;
     document.getElementById('recovery-empty-area').classList.toggle('hidden', !!lost);
     document.getElementById('recovery-action-area').classList.toggle('hidden', !lost);
     document.getElementById('recovery-success-area').classList.add('hidden');
@@ -698,7 +820,7 @@ function executeRecovery() {
         operator.recoveryDelegateId = null;
         lost.recovered = true;
         const lostTenant = DATA.tenants.find(t => t.id === lost.tenantId);
-        DATA.recoveryAliases.push({ currentOperatorId: DATA.currentUser.operatorId, rootAddress: operatorId, tenantName: lostTenant.name, recoveredAt: TODAY, reason: 'Tự khôi phục qua ví dự phòng' });
+        DATA.recoveryAliases.push({ currentOperatorId: me().id, rootAddress: operatorId, tenantName: lostTenant.name, recoveredAt: TODAY, reason: 'Tự khôi phục qua ví dự phòng' });
         document.getElementById('recovery-action-area').classList.add('hidden');
         document.getElementById('recovery-success-area').classList.remove('hidden');
         showToast("Thành công", "Đã nhận cọc & hồ sơ. Tài khoản vẫn cần Operator Manager kích hoạt lại trước khi ký được.");
@@ -784,7 +906,7 @@ function renderConfig() {
     document.getElementById('cosign-policy-table-body').innerHTML = DATA.coSignPolicies.map(p => `
         <tr class="border-b border-slate-100">
             <td class="p-3 font-medium text-sm">${p.label} <span class="text-xs text-slate-400 font-mono">#${p.docType}</span></td>
-            <td class="p-3 text-center"><input type="checkbox" id="policy-enabled-${p.docType}" ${p.enabled ? 'checked' : ''} onchange="renderConfig()" class="w-4 h-4"></td>
+            <td class="p-3 text-center"><input type="checkbox" id="policy-enabled-${p.docType}" ${p.enabled ? 'checked' : ''} onchange="toggleCoSignPolicyRow(${p.docType}, this.checked)" class="w-4 h-4"></td>
             <td class="p-3"><input type="number" min="1" id="policy-minsigners-${p.docType}" value="${p.minSigners}" ${p.enabled ? '' : 'disabled'} class="w-16 px-2 py-1 border ${p.enabled ? 'border-slate-300' : 'bg-slate-100 border-slate-200'} rounded text-center text-sm font-bold"></td>
             <td class="p-3"><input type="number" min="0" step="0.5" id="policy-minstake-${p.docType}" value="${p.minStakeEth}" ${p.enabled ? '' : 'disabled'} class="w-20 px-2 py-1 border ${p.enabled ? 'border-slate-300' : 'bg-slate-100 border-slate-200'} rounded text-center text-sm font-bold"></td>
             <td class="p-3">${DATA.roleCatalog.map(r => `<label class="inline-flex items-center gap-1 mr-3 text-xs ${p.enabled ? 'text-slate-600' : 'text-slate-300'}"><input type="checkbox" id="policy-role-${p.docType}-${r.roleId}" ${p.requiredRoleIds.includes(r.roleId) ? 'checked' : ''} ${p.enabled ? '' : 'disabled'} class="w-3.5 h-3.5">${r.label}</label>`).join('')}</td>
@@ -805,6 +927,25 @@ document.addEventListener('input', e => {
     if (e.target.id === 'cfg-minstake-range') document.getElementById('cfg-minstake-label').innerText = `${fmtEth(e.target.value)} ETH`;
     if (e.target.id === 'cfg-cooldown-range') document.getElementById('cfg-cooldown-label').innerText = `${e.target.value} Giờ`;
 });
+
+// Toggling "Bật Đồng Ký" must NOT re-render the whole table from DATA (DATA.enabled is still
+// stale until Cập Nhật Chuỗi is clicked) — a full renderConfig() would snap this checkbox
+// straight back to unchecked and also discard any unsaved edits in other policy rows.
+function toggleCoSignPolicyRow(docType, enabled) {
+    const minSigners = document.getElementById(`policy-minsigners-${docType}`);
+    const minStake = document.getElementById(`policy-minstake-${docType}`);
+    [minSigners, minStake].forEach(el => {
+        el.disabled = !enabled;
+        el.classList.toggle('bg-slate-100', !enabled);
+        el.classList.toggle('border-slate-200', !enabled);
+        el.classList.toggle('border-slate-300', enabled);
+    });
+    document.querySelectorAll(`[id^="policy-role-${docType}-"]`).forEach(cb => {
+        cb.disabled = !enabled;
+        cb.closest('label').classList.toggle('text-slate-300', !enabled);
+        cb.closest('label').classList.toggle('text-slate-600', enabled);
+    });
+}
 
 function addCoSignPolicy() {
     const docType = Number(document.getElementById('new-doctype-id').value);

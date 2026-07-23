@@ -3,11 +3,7 @@
     "publicName": "Nguyễn Văn A",
     "operatorId": "me"
   },
-  "demoWallets": [
-    { "id": "me", "label": "Ví Của Bạn (Nguyễn Văn A)", "address": "0x71C4...9A2f" },
-    { "id": "tenant-admin-abc", "label": "Admin — Công ty CP Giáo dục ABC", "address": "0xA11...GD01" },
-    { "id": "protocol-admin", "label": "Protocol Admin", "address": "0xP00A...DM01" }
-  ],
+  "protocolAdminAddress": "0xP00A...DM01",
   "tenantApplications": [
     {
       "id": "app-seed-1",
@@ -45,12 +41,12 @@
     }
   ],
   "operators": [
-    { "id": "me", "tenantId": "abc", "name": "Bạn (ví đang đăng nhập)", "stakeEth": 0, "isActive": false, "bio": null, "flaggedNote": null, "recoveryDelegateId": null },
-    { "id": "tran-b", "tenantId": "abc", "name": "Giảng viên Trần B", "stakeEth": 5.0, "isActive": true, "flaggedNote": null, "recoveryDelegateId": null },
-    { "id": "le-d", "tenantId": "abc", "name": "Quản lý Lê D", "stakeEth": 10.0, "isActive": false, "flaggedNote": "Vừa nạp đủ cọc, chờ kích hoạt", "recoveryDelegateId": null },
-    { "id": "le-c", "tenantId": "abc", "name": "Giảng viên Lê C", "stakeEth": 5.0, "isActive": true, "flaggedNote": "Tình nghi gian lận", "recoveryDelegateId": null },
-    { "id": "le-f", "tenantId": "abc", "name": "Giảng viên Lê F", "stakeEth": 5.0, "isActive": false, "flaggedNote": "Mất quyền truy cập ví chính, có ví dự phòng", "recoveryDelegateId": "me" },
-    { "id": "van-g", "tenantId": "abc", "name": "Giảng viên Văn G", "stakeEth": 8.0, "isActive": false, "flaggedNote": "Mất ví, KHÔNG có ví dự phòng", "recoveryDelegateId": null }
+    { "id": "me", "tenantId": "abc", "name": "Nguyễn Văn A", "address": "0x71C4...9A2f", "stakeEth": 0, "isActive": false, "bio": null, "flaggedNote": null, "recoveryDelegateId": null },
+    { "id": "tran-b", "tenantId": "abc", "name": "Giảng viên Trần B", "address": "0xT001...B99F", "stakeEth": 5.0, "isActive": true, "flaggedNote": null, "recoveryDelegateId": null },
+    { "id": "le-d", "tenantId": "abc", "name": "Quản lý Lê D", "address": "0xL004...D88E", "stakeEth": 10.0, "isActive": false, "flaggedNote": "Vừa nạp đủ cọc, chờ kích hoạt", "recoveryDelegateId": null },
+    { "id": "le-c", "tenantId": "abc", "name": "Giảng viên Lê C", "address": "0xL003...C77D", "stakeEth": 5.0, "isActive": true, "flaggedNote": "Tình nghi gian lận", "recoveryDelegateId": null },
+    { "id": "le-f", "tenantId": "abc", "name": "Giảng viên Lê F", "address": "0xL006...F66C", "stakeEth": 5.0, "isActive": false, "flaggedNote": "Mất quyền truy cập ví chính, có ví dự phòng", "recoveryDelegateId": "me" },
+    { "id": "van-g", "tenantId": "abc", "name": "Giảng viên Văn G", "address": "0xV007...G55B", "stakeEth": 8.0, "isActive": false, "flaggedNote": "Mất ví, KHÔNG có ví dự phòng", "recoveryDelegateId": null }
   ],
   "violationPenalties": [
     { "code": 1, "label": "Lỗi hành chính nhẹ (vd. sai ngày cấp)", "bps": 100 },

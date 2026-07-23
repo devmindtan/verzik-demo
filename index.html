@@ -1,27 +1,84 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voucher Protocol - Demo Cuộc Thi</title>
+    <title>Voucher Protocol</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .fade-in { animation: fadeIn 0.4s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .sidebar-scroll::-webkit-scrollbar-thumb { background: #334155; }
-        .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background: #334155;
+        }
+
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
 
         /* ===== Responsive: mobile drawer sidebar ===== */
-        #sidebar-backdrop { transition: opacity 0.25s ease; }
+        #sidebar-backdrop {
+            transition: opacity 0.25s ease;
+        }
+
         @media (max-width: 1023px) {
             #app-sidebar {
                 position: fixed;
@@ -34,65 +91,115 @@
                 width: 85vw;
                 max-width: 320px;
             }
-            #app-sidebar.sidebar-open { transform: translateX(0); }
+
+            #app-sidebar.sidebar-open {
+                transform: translateX(0);
+            }
         }
+
         @media (min-width: 1024px) {
-            #sidebar-backdrop { display: none !important; }
-            #btn-open-sidebar { display: none !important; }
+            #sidebar-backdrop {
+                display: none !important;
+            }
+
+            #btn-open-sidebar {
+                display: none !important;
+            }
         }
+
         /* Role switcher: horizontal scroll on small screens instead of wrapping/breaking layout */
-        #role-switcher-scroll { -webkit-overflow-scrolling: touch; }
-        #role-switcher-scroll::-webkit-scrollbar { height: 0; }
+        #role-switcher-scroll {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #role-switcher-scroll::-webkit-scrollbar {
+            height: 0;
+        }
+
         /* Any data table wrapped for horizontal scroll on narrow viewports */
-        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
     </style>
 </head>
+
 <body class="h-screen flex flex-col overflow-hidden text-slate-800">
 
     <!-- ================= WALLET CONNECT MODAL (không bắt buộc — chỉ hiện khi cần) ================= -->
     <div id="connect-gate" class="hidden fixed inset-0 bg-slate-900/70 z-[100] items-center justify-center p-6">
-        <div class="max-w-md w-full text-center bg-slate-900 rounded-2xl p-8 relative">
-            <button onclick="closeConnectModal()" class="absolute top-4 right-4 text-slate-500 hover:text-white" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button>
-            <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-2xl text-white mx-auto mb-6"><i class="fa-solid fa-link"></i></div>
-            <h1 class="text-2xl font-bold text-white mb-2">TrustChain</h1>
-            <p class="text-slate-400 mb-6">Chọn ví demo để kết nối. Mỗi ví có quyền hạn khác nhau trên hệ thống — đúng như trong thực tế, chỉ ví đang giữ vai trò tương ứng mới thấy được các trang quản trị của vai trò đó.</p>
-            <div class="space-y-2 text-left" id="connect-wallet-list"></div>
-            <p class="text-xs text-slate-500 mt-4">Bạn vẫn có thể tiếp tục xem dữ liệu công khai (Xác minh, Sổ Cái) mà không cần kết nối.</p>
+        <div class="max-w-md w-full text-center bg-slate-900 rounded-2xl p-8 relative max-h-[90vh] flex flex-col">
+            <button onclick="closeConnectModal()" class="absolute top-4 right-4 text-slate-500 hover:text-white"
+                aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button>
+            <div class="shrink-0">
+                <div
+                    class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-2xl text-white mx-auto mb-6">
+                    <i class="fa-solid fa-link"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-white mb-2">TrustChain</h1>
+                <p class="text-slate-400 mb-6 text-sm">Chọn ví demo để kết nối. Mỗi ví có quyền hạn khác nhau trên hệ
+                    thống — đúng như trong thực tế, chỉ ví đang giữ vai trò tương ứng mới thấy được các trang quản trị
+                    của vai trò đó.</p>
+            </div>
+            <div class="space-y-2 text-left overflow-y-auto pr-1" id="connect-wallet-list"></div>
+            <p class="text-xs text-slate-500 mt-4 shrink-0">Bạn vẫn có thể tiếp tục xem dữ liệu công khai (Xác minh, Sổ
+                Cái) mà không cần kết nối.</p>
         </div>
     </div>
 
     <!-- Topbar: Role Switcher -->
-    <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between gap-2 px-3 sm:px-6 z-20 shrink-0">
+    <header
+        class="bg-white border-b border-slate-200 h-16 flex items-center justify-between gap-2 px-3 sm:px-6 z-20 shrink-0">
         <div class="flex items-center gap-2 sm:gap-3 min-w-0">
-            <button id="btn-open-sidebar" onclick="openSidebar()" class="w-9 h-9 shrink-0 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 flex items-center justify-center" aria-label="Mở menu">
+            <button id="btn-open-sidebar" onclick="openSidebar()"
+                class="w-9 h-9 shrink-0 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 flex items-center justify-center"
+                aria-label="Mở menu">
                 <i class="fa-solid fa-bars"></i>
             </button>
-            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white text-lg shrink-0"><i class="fa-solid fa-link"></i></div>
-            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-800 truncate">TrustChain <span class="hidden sm:inline text-xs font-normal text-slate-400 bg-slate-100 px-2 py-1 rounded ml-2 border border-slate-200">Demo Portal</span></h1>
+            <div
+                class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white text-lg shrink-0">
+                <i class="fa-solid fa-link"></i>
+            </div>
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-800 truncate">TrustChain <span
+                    class="hidden sm:inline text-xs font-normal text-slate-400 bg-slate-100 px-2 py-1 rounded ml-2 border border-slate-200">Demo
+                    Portal</span></h1>
         </div>
 
         <div class="flex items-center gap-2 sm:gap-4 min-w-0">
-            <div class="hidden items-center gap-2 text-sm border-r border-slate-200 pr-4 shrink-0" id="wallet-connected-badge">
+            <div class="hidden items-center gap-2 text-sm border-r border-slate-200 pr-4 shrink-0"
+                id="wallet-connected-badge">
                 <i class="fa-solid fa-circle text-emerald-500 text-[8px]"></i>
                 <span class="font-mono text-slate-500" id="wallet-address-label"></span>
-                <button onclick="disconnectWallet()" class="text-slate-400 hover:text-red-500 ml-1" title="Ngắt kết nối"><i class="fa-solid fa-right-from-bracket"></i></button>
+                <button onclick="disconnectWallet()" class="text-slate-400 hover:text-red-500 ml-1"
+                    title="Ngắt kết nối"><i class="fa-solid fa-right-from-bracket"></i></button>
             </div>
-            <button onclick="openConnectModal()" id="btn-header-connect" class="flex items-center gap-2 text-sm font-semibold text-blue-600 border border-blue-200 hover:bg-blue-50 px-3 py-1.5 rounded-lg shrink-0">
+            <button onclick="openConnectModal()" id="btn-header-connect"
+                class="flex items-center gap-2 text-sm font-semibold text-blue-600 border border-blue-200 hover:bg-blue-50 px-3 py-1.5 rounded-lg shrink-0">
                 <i class="fa-solid fa-wallet"></i><span class="hidden sm:inline">Kết Nối Ví</span>
             </button>
-            <span class="hidden lg:inline text-sm font-semibold text-slate-500 uppercase tracking-wider shrink-0">Đóng vai (Role):</span>
-            <div id="role-switcher-scroll" class="flex bg-slate-100 p-1 rounded-lg border border-slate-200 max-w-[55vw] sm:max-w-none overflow-x-auto">
-                <button onclick="switchRole('public')" id="role-public" class="px-2.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all bg-slate-800 text-white shadow whitespace-nowrap">
-                    <i class="fa-solid fa-earth-americas mr-1 text-slate-300"></i><span class="hidden sm:inline">Công chúng (User)</span><span class="sm:hidden">User</span>
+            <span class="hidden lg:inline text-sm font-semibold text-slate-500 uppercase tracking-wider shrink-0">Đóng
+                vai:</span>
+            <div id="role-switcher-scroll"
+                class="flex bg-slate-100 p-1 rounded-lg border border-slate-200 max-w-[55vw] sm:max-w-none overflow-x-auto">
+                <button onclick="switchRole('public')" id="role-public"
+                    class="px-2.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all bg-slate-800 text-white shadow whitespace-nowrap">
+                    <i class="fa-solid fa-earth-americas mr-1 text-slate-300"></i><span class="hidden sm:inline">Công
+                        chúng</span><span class="sm:hidden">User</span>
                 </button>
-                <button onclick="switchRole('operator')" id="role-operator" class="px-2.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all text-slate-600 hover:text-blue-600 whitespace-nowrap">
-                    <i class="fa-solid fa-user-tie mr-1"></i><span class="hidden sm:inline">Nhân viên (Operator)</span><span class="sm:hidden">Operator</span>
+                <button onclick="switchRole('operator')" id="role-operator"
+                    class="px-2.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all text-slate-600 hover:text-blue-600 whitespace-nowrap">
+                    <i class="fa-solid fa-user-tie mr-1"></i><span class="hidden sm:inline">Nhân
+                        viên</span><span class="sm:hidden">Operator</span>
                 </button>
-                <button onclick="switchRole('tenant')" id="role-tenant" class="px-2.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all text-slate-600 hover:text-amber-600 whitespace-nowrap">
-                    <i class="fa-solid fa-building-shield mr-1"></i><span class="hidden sm:inline">Công ty (Tenant)</span><span class="sm:hidden">Tenant</span>
+                <button onclick="switchRole('tenant')" id="role-tenant"
+                    class="px-2.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all text-slate-600 hover:text-amber-600 whitespace-nowrap">
+                    <i class="fa-solid fa-building-shield mr-1"></i><span class="hidden sm:inline">Công
+                        ty</span><span class="sm:hidden">Tenant</span>
                 </button>
-                <button onclick="switchRole('admin')" id="role-admin" class="px-2.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all text-slate-600 hover:text-purple-600 whitespace-nowrap">
-                    <i class="fa-solid fa-server mr-1"></i><span class="hidden sm:inline">Protocol Admin</span><span class="sm:hidden">Admin</span>
+                <button onclick="switchRole('admin')" id="role-admin"
+                    class="px-2.5 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all text-slate-600 hover:text-purple-600 whitespace-nowrap">
+                    <i class="fa-solid fa-server mr-1"></i><span class="hidden sm:inline">Protocol Admin</span><span
+                        class="sm:hidden">Admin</span>
                 </button>
             </div>
         </div>
@@ -103,10 +210,13 @@
         <div id="sidebar-backdrop" onclick="closeSidebar()" class="hidden fixed inset-0 bg-slate-900/50 z-30"></div>
 
         <!-- Sidebar Navigation -->
-        <aside id="app-sidebar" class="w-72 bg-slate-900 text-white flex flex-col transition-all duration-300 overflow-y-auto sidebar-scroll">
+        <aside id="app-sidebar"
+            class="w-72 bg-slate-900 text-white flex flex-col transition-all duration-300 overflow-y-auto sidebar-scroll">
             <div class="flex items-center justify-between p-4 lg:hidden border-b border-slate-800">
                 <span class="text-sm font-bold text-white">Menu</span>
-                <button onclick="closeSidebar()" class="w-8 h-8 rounded-lg text-slate-300 hover:bg-slate-800 flex items-center justify-center" aria-label="Đóng menu"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="closeSidebar()"
+                    class="w-8 h-8 rounded-lg text-slate-300 hover:bg-slate-800 flex items-center justify-center"
+                    aria-label="Đóng menu"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
             <div class="p-6 border-b border-slate-800 bg-slate-800/50">
@@ -120,33 +230,53 @@
 
                 <!-- LUÔN HIỂN THỊ Ở MỌI VAI TRÒ: hàm permissionless / đọc công khai, không cần đã "đăng nhập" vai trò gì -->
                 <div class="mb-6">
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2">Dịch Vụ Công Khai (Mọi vai trò)</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2">Dịch Vụ Công Khai
+                        (Mọi vai trò)</p>
                     <nav class="space-y-1">
-                        <button onclick="switchView('verify')" id="nav-verify" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-magnifying-glass w-5 text-center"></i><span class="text-sm font-medium">Xác minh nhanh (Guest)</span>
+                        <button onclick="switchView('verify')" id="nav-verify"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-magnifying-glass w-5 text-center"></i><span
+                                class="text-sm font-medium">Xác minh nhanh</span>
                         </button>
-                        <button onclick="switchView('explorer')" id="nav-explorer" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-network-wired w-5 text-center text-emerald-400"></i><span class="text-sm font-medium">Sổ Cái Công Khai (Explorer)</span>
+                        <button onclick="switchView('explorer')" id="nav-explorer"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-network-wired w-5 text-center text-emerald-400"></i><span
+                                class="text-sm font-medium">Sổ Cái Công Khai</span>
                         </button>
-                        <button onclick="switchView('join')" id="nav-join" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-right-to-bracket w-5 text-center text-emerald-400"></i><span class="text-sm font-medium">Gia Nhập Làm Nhân Viên</span>
+
+                    </nav>
+                </div>
+                <div class="border-t border-slate-800 mb-4"></div>
+                <div id="personal-nav-block" class="mb-6">
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2">Đăng ký</p>
+                    <nav class="space-y-1">
+                        <button onclick="switchView('join')" id="nav-join"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-right-to-bracket w-5 text-center text-emerald-400"></i><span
+                                class="text-sm font-medium">Gia Nhập Làm Nhân Viên</span>
                         </button>
-                        <button onclick="switchView('apply-tenant')" id="nav-apply-tenant" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-building-circle-check w-5 text-center text-purple-400"></i><span class="text-sm font-medium">Đăng Ký Doanh Nghiệp</span>
+                        <button onclick="switchView('apply-tenant')" id="nav-apply-tenant"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-building-circle-check w-5 text-center text-purple-400"></i><span
+                                class="text-sm font-medium">Đăng Ký Doanh Nghiệp</span>
                         </button>
                     </nav>
                 </div>
                 <div class="border-t border-slate-800 mb-4"></div>
 
-                <!-- LUÔN HIỂN THỊ TRỪ ADMIN: dù đóng vai gì, mọi ví vẫn chỉ là 1 cá nhân bình thường -->
+                <!-- LUÔN HIỂN THỊ TRỪ ADMIN: chứng từ cá nhân chỉ có nghĩa với người dùng/nhân viên -->
                 <div id="personal-nav-block" class="mb-6">
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2">Cá Nhân (Mọi vai trò trừ Protocol Admin)</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2">Cá Nhân</p>
                     <nav class="space-y-1">
-                        <button onclick="switchView('account')" id="nav-account" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-address-card w-5 text-center text-sky-400"></i><span class="text-sm font-medium">Hồ Sơ Cá Nhân</span>
+                        <button onclick="switchView('account')" id="nav-account"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-address-card w-5 text-center text-sky-400"></i><span
+                                class="text-sm font-medium">Hồ Sơ Cá Nhân</span>
                         </button>
-                        <button onclick="switchView('my-docs')" id="nav-my-docs" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-wallet w-5 text-center"></i><span class="text-sm font-medium">Kho Chứng Từ Của Tôi</span>
+                        <button onclick="switchView('my-docs')" id="nav-my-docs"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-wallet w-5 text-center"></i><span class="text-sm font-medium">Kho
+                                Chứng Từ Của Tôi</span>
                         </button>
                     </nav>
                 </div>
@@ -157,76 +287,98 @@
 
                 <!-- MENU: NHÂN VIÊN (OPERATOR) -->
                 <div id="menu-group-operator" class="role-menu-group hidden">
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-2">Hồ Sơ</p>
-                    <nav class="space-y-1 mb-6">
-                        <button onclick="switchView('profile')" id="nav-profile" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-id-card w-5 text-center text-sky-400"></i><span class="text-sm font-medium">Hồ Sơ Của Tôi</span>
-                        </button>
-                    </nav>
-
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-2">Nghiệp vụ chứng từ</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-2">Nghiệp vụ
+                        chứng từ</p>
                     <nav class="space-y-1">
-                        <button onclick="switchView('issue')" id="nav-issue" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-file-signature w-5 text-center"></i><span class="text-sm font-medium">Phát hành mới</span>
+                        <button onclick="switchView('issue')" id="nav-issue"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-file-signature w-5 text-center"></i><span
+                                class="text-sm font-medium">Phát hành mới</span>
                         </button>
-                        <button onclick="switchView('cosign')" id="nav-cosign" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                        <button onclick="switchView('cosign')" id="nav-cosign"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
                             <i class="fa-solid fa-pen-nib w-5 text-center"></i>
                             <div class="flex-1 flex justify-between items-center">
                                 <span class="text-sm font-medium">Phê duyệt (Đồng ký)</span>
-                                <span class="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full" id="cosign-badge">0</span>
+                                <span class="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                                    id="cosign-badge">0</span>
                             </div>
                         </button>
                     </nav>
 
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-6">Tài sản & Bảo mật</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-6">Tài sản &
+                        Bảo mật</p>
                     <nav class="space-y-1">
-                        <button onclick="switchView('stake')" id="nav-stake" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-brands fa-ethereum w-5 text-center text-blue-400"></i><span class="text-sm font-medium">Tiền cọc (Stake)</span>
+                        <button onclick="switchView('stake')" id="nav-stake"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-brands fa-ethereum w-5 text-center text-blue-400"></i><span
+                                class="text-sm font-medium">Tiền cọc</span>
                         </button>
-                        <button onclick="switchView('security')" id="nav-security" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-shield-halved w-5 text-center text-indigo-400"></i><span class="text-sm font-medium">Ví dự phòng</span>
+                        <button onclick="switchView('security')" id="nav-security"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-shield-halved w-5 text-center text-indigo-400"></i><span
+                                class="text-sm font-medium">Ví dự phòng</span>
                         </button>
-                        <button onclick="switchView('recovery')" id="nav-recovery" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-life-ring w-5 text-center text-amber-500"></i><span class="text-sm font-medium">Khôi phục khẩn cấp</span>
+                        <button onclick="switchView('recovery')" id="nav-recovery"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-life-ring w-5 text-center text-amber-500"></i><span
+                                class="text-sm font-medium">Khôi phục khẩn cấp</span>
                         </button>
                     </nav>
                 </div>
 
                 <!-- MENU: CÔNG TY (TENANT) -->
                 <div id="menu-group-tenant" class="role-menu-group hidden">
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-2">Quản trị Vận hành (Manager)</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-2">Quản trị Vận
+                        hành</p>
                     <nav class="space-y-1">
-                        <button onclick="switchView('hr')" id="nav-hr" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-users w-5 text-center"></i><span class="text-sm font-medium">Nhân sự & Phân quyền</span>
+                        <button onclick="switchView('hr')" id="nav-hr"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-users w-5 text-center"></i><span class="text-sm font-medium">Nhân sự &
+                                Phân quyền</span>
                         </button>
-                        <button onclick="switchView('slash')" id="nav-slash" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-gavel w-5 text-center text-red-400"></i><span class="text-sm font-medium">Xử phạt vi phạm</span>
+                        <button onclick="switchView('slash')" id="nav-slash"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-gavel w-5 text-center text-red-400"></i><span
+                                class="text-sm font-medium">Xử phạt vi phạm</span>
                         </button>
-                        <button onclick="switchView('config')" id="nav-config" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-sliders w-5 text-center text-emerald-400"></i><span class="text-sm font-medium">Tham số Hợp đồng</span>
+                        <button onclick="switchView('config')" id="nav-config"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-sliders w-5 text-center text-emerald-400"></i><span
+                                class="text-sm font-medium">Tham số Hợp đồng</span>
                         </button>
-                        <button onclick="switchView('emergency-recovery')" id="nav-emergency-recovery" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-user-shield w-5 text-center text-amber-500"></i><span class="text-sm font-medium">Khôi phục hộ nhân viên</span>
+                        <button onclick="switchView('emergency-recovery')" id="nav-emergency-recovery"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-user-shield w-5 text-center text-amber-500"></i><span
+                                class="text-sm font-medium">Khôi phục hộ nhân viên</span>
                         </button>
                     </nav>
 
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-6">Quyền lực tối cao (Admin)</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-6">Quyền lực
+                        tối cao</p>
                     <nav class="space-y-1">
-                        <button onclick="switchView('revoke')" id="nav-revoke" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-ban w-5 text-center text-amber-500"></i><span class="text-sm font-medium">Thu hồi chứng chỉ</span>
+                        <button onclick="switchView('revoke')" id="nav-revoke"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-ban w-5 text-center text-amber-500"></i><span
+                                class="text-sm font-medium">Thu hồi chứng chỉ</span>
                         </button>
-                        <button onclick="switchView('treasury')" id="nav-treasury" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-money-bill-transfer w-5 text-center text-amber-500"></i><span class="text-sm font-medium">Đổi tài khoản quỹ</span>
+                        <button onclick="switchView('treasury')" id="nav-treasury"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-money-bill-transfer w-5 text-center text-amber-500"></i><span
+                                class="text-sm font-medium">Đổi tài khoản quỹ</span>
                         </button>
                     </nav>
                 </div>
 
                 <!-- MENU: PROTOCOL ADMIN -->
                 <div id="menu-group-admin" class="role-menu-group hidden">
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-2">Hệ sinh thái Blockchain</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-2 mt-2">Hệ sinh thái
+                        Blockchain</p>
                     <nav class="space-y-1">
-                        <button onclick="switchView('platform')" id="nav-platform" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
-                            <i class="fa-solid fa-server w-5 text-center text-purple-500"></i><span class="text-sm font-medium">Quản lý Doanh nghiệp</span>
+                        <button onclick="switchView('platform')" id="nav-platform"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-800 transition-colors">
+                            <i class="fa-solid fa-server w-5 text-center text-purple-500"></i><span
+                                class="text-sm font-medium">Quản lý Doanh nghiệp</span>
                         </button>
                     </nav>
                 </div>
@@ -237,7 +389,9 @@
                 <div class="bg-slate-800 rounded-lg p-3 text-sm">
                     <div class="flex justify-between text-slate-300 mb-1">
                         <span>Mạng lưới:</span>
-                        <span class="text-emerald-400 flex items-center gap-1"><div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div> Live</span>
+                        <span class="text-emerald-400 flex items-center gap-1">
+                            <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div> Live
+                        </span>
                     </div>
                     <div class="flex justify-between text-slate-300">
                         <span>Contract:</span>
@@ -251,60 +405,187 @@
         <main class="flex-1 overflow-y-auto bg-slate-50 relative" id="main-container">
 
             <!-- Khoá mọi trang cần biết danh tính khi chưa kết nối ví (trừ Verify/Explorer — đọc công khai) -->
-            <div id="connect-required-overlay" class="hidden absolute inset-0 bg-slate-50/95 backdrop-blur-sm z-30 flex items-center justify-center p-8">
+            <div id="connect-required-overlay"
+                class="hidden absolute inset-0 bg-slate-50/95 backdrop-blur-sm z-30 flex items-center justify-center p-8">
                 <div class="max-w-sm text-center bg-white rounded-2xl border border-slate-200 shadow-xl p-8">
-                    <div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-wallet"></i></div>
+                    <div
+                        class="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
                     <h3 class="font-bold text-lg text-slate-800 mb-2">Cần Kết Nối Ví</h3>
-                    <p class="text-sm text-slate-500 mb-6">Trang này cần biết ví của bạn để hiển thị đúng dữ liệu hoặc thực hiện giao dịch. Xem dữ liệu công khai (Xác minh, Sổ Cái) thì không cần kết nối.</p>
-                    <button onclick="openConnectModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-bold"><i class="fa-solid fa-wallet"></i> Kết Nối Ví</button>
+                    <p class="text-sm text-slate-500 mb-6">Trang này cần biết ví của bạn để hiển thị đúng dữ liệu hoặc
+                        thực hiện giao dịch. Xem dữ liệu công khai (Xác minh, Sổ Cái) thì không cần kết nối.</p>
+                    <button onclick="openConnectModal()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-bold"><i
+                            class="fa-solid fa-wallet"></i> Kết Nối Ví</button>
                 </div>
             </div>
 
             <!-- Khoá Gia Nhập / Đăng Ký Doanh Nghiệp khi ví đã có thân phận rồi (đã là nhân viên hoặc đã quản trị doanh nghiệp) -->
-            <div id="identity-locked-overlay" class="hidden absolute inset-0 bg-slate-50/95 backdrop-blur-sm z-30 flex items-center justify-center p-8">
+            <div id="identity-locked-overlay"
+                class="hidden absolute inset-0 bg-slate-50/95 backdrop-blur-sm z-30 flex items-center justify-center p-8">
                 <div class="max-w-sm text-center bg-white rounded-2xl border border-slate-200 shadow-xl p-8">
-                    <div class="w-14 h-14 bg-slate-100 text-slate-500 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-circle-check"></i></div>
+                    <div
+                        class="w-14 h-14 bg-slate-100 text-slate-500 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
                     <h3 class="font-bold text-lg text-slate-800 mb-2">Không Cần Đăng Ký Thêm</h3>
                     <p class="text-sm text-slate-500 mb-2" id="identity-locked-reason"></p>
                 </div>
             </div>
 
             <!-- Khoá các trang nghiệp vụ Operator khi ví chưa gia nhập tổ chức nào (chưa "trở thành" Operator) -->
-            <div id="operator-locked-overlay" class="hidden absolute inset-0 bg-slate-50/95 backdrop-blur-sm z-30 flex items-center justify-center p-8">
+            <div id="operator-locked-overlay"
+                class="hidden absolute inset-0 bg-slate-50/95 backdrop-blur-sm z-30 flex items-center justify-center p-8">
                 <div class="max-w-sm text-center bg-white rounded-2xl border border-slate-200 shadow-xl p-8">
-                    <div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4"><i class="fa-solid fa-lock"></i></div>
+                    <div
+                        class="w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4">
+                        <i class="fa-solid fa-lock"></i>
+                    </div>
                     <h3 class="font-bold text-lg text-slate-800 mb-2">Ví Của Bạn Chưa Là Nhân Viên Phát Hành</h3>
-                    <p class="text-sm text-slate-500 mb-6">Trang này chỉ mở cho ví đang hoạt động với vai trò Operator. Gia nhập bằng cách đặt cọc đủ mức tối thiểu — permissionless, không cần ai duyệt trước.</p>
-                    <button onclick="switchView('join')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-bold"><i class="fa-solid fa-right-to-bracket"></i> Gia Nhập Ngay</button>
+                    <p class="text-sm text-slate-500 mb-6">Trang này chỉ mở cho ví đang hoạt động với vai trò Operator.
+                        Gia nhập bằng cách đặt cọc đủ mức tối thiểu — permissionless, không cần ai duyệt trước.</p>
+                    <button onclick="switchView('join')"
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-bold"><i
+                            class="fa-solid fa-right-to-bracket"></i> Gia Nhập Ngay</button>
                 </div>
             </div>
 
             <!-- ================= VIEW: HỒ SƠ CÁ NHÂN (PUBLIC, cần kết nối ví) ================= -->
-            <section id="view-account" class="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto hidden fade-in">
-                <div class="mb-8"><h2 class="text-2xl font-bold text-slate-800">Hồ Sơ Cá Nhân</h2><p class="text-slate-500">Tổng hợp mọi thông tin & vai trò gắn với ví đang kết nối</p></div>
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6 flex items-center gap-4">
-                    <div class="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 text-xl shrink-0"><i class="fa-solid fa-user"></i></div>
-                    <div class="min-w-0">
-                        <p class="font-bold text-lg text-slate-800" id="account-name"></p>
-                        <p class="text-sm font-mono text-slate-500 truncate" id="account-address"></p>
+            <!-- ================= VIEW: HỒ SƠ CÁ NHÂN (PUBLIC, cần kết nối ví) ================= -->
+            <section id="view-account" class="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto hidden fade-in">
+
+                <!-- Banner + Avatar -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+                    <div class="h-28 sm:h-32 bg-gradient-to-br from-indigo-900 via-slate-800 to-slate-900"></div>
+                    <div class="px-6 pb-6 pt-4">
+                        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+                            <div class="flex items-end gap-4">
+                                <div class="w-24 h-24 rounded-2xl bg-gradient-to-br from-slate-600 to-slate-800 ring-4 ring-white shadow-md flex items-center justify-center text-2xl font-bold text-white shrink-0 -mt-14"
+                                    id="account-avatar">?</div>
+                                <div class="pb-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <p class="font-bold text-xl text-slate-800" id="account-name"></p>
+                                        <span id="account-role-badge"
+                                            class="text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap"></span>
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-1.5">
+                                        <p class="text-sm font-mono text-slate-500 bg-slate-50 border border-slate-200 rounded px-2 py-0.5 truncate max-w-[200px] sm:max-w-none"
+                                            id="account-address"></p>
+                                        <button onclick="copyAccountAddress()"
+                                            class="text-slate-400 hover:text-blue-600 shrink-0"
+                                            title="Sao chép địa chỉ"><i class="fa-regular fa-copy text-xs"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex gap-2 pb-1 shrink-0 overflow-x-auto max-w-full">
+                                <button onclick="switchAccountTab('overview')" id="account-tab-btn-overview"
+                                    class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-white whitespace-nowrap">Tổng
+                                    quan</button>
+                                <button onclick="switchAccountTab('activity')" id="account-tab-btn-activity"
+                                    class="px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap">Hoạt
+                                    động</button>
+                                <button onclick="switchAccountTab('security')" id="account-tab-btn-security"
+                                    class="px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap">Bảo
+                                    mật</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-                        <p class="text-xs font-bold text-slate-400 uppercase mb-2">Tư Cách Operator</p>
-                        <p class="text-sm text-slate-700" id="account-operator-status"></p>
+
+                <!-- TAB: TỔNG QUAN -->
+                <div id="account-tab-overview">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-1">Tiền cọc</p>
+                            <p class="text-xl font-bold text-slate-800" id="account-stat-stake">0 ETH</p>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-1">Vai trò QT</p>
+                            <p class="text-xl font-bold text-slate-800" id="account-stat-roles">0</p>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-1">Chứng từ</p>
+                            <p class="text-xl font-bold text-slate-800" id="account-stat-docs">0</p>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-1">Uy tín</p>
+                            <p class="text-xl font-bold text-slate-800" id="account-stat-trust">—</p>
+                        </div>
                     </div>
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-                        <p class="text-xs font-bold text-slate-400 uppercase mb-2">Vai Trò Quản Trị Tổ Chức</p>
-                        <p class="text-sm text-slate-700" id="account-governance-status"></p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-2"><i
+                                    class="fa-solid fa-user-tie mr-1"></i>Tư Cách Operator</p>
+                            <p class="text-sm text-slate-700" id="account-operator-status"></p>
+                        </div>
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-2"><i
+                                    class="fa-solid fa-building-shield mr-1"></i>Vai Trò Quản Trị Tổ Chức</p>
+                            <p class="text-sm text-slate-700" id="account-governance-status"></p>
+                        </div>
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-2"><i
+                                    class="fa-solid fa-wallet mr-1"></i>Chứng Từ Sở Hữu</p>
+                            <p class="text-sm text-slate-700" id="account-docs-status"></p>
+                        </div>
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-2"><i
+                                    class="fa-solid fa-shield-halved mr-1"></i>Ví Dự Phòng Cho</p>
+                            <p class="text-sm text-slate-700" id="account-delegate-status"></p>
+                        </div>
                     </div>
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-                        <p class="text-xs font-bold text-slate-400 uppercase mb-2">Chứng Từ Sở Hữu</p>
-                        <p class="text-sm text-slate-700" id="account-docs-status"></p>
+
+                    <div id="account-bio-card"
+                        class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="font-bold text-slate-800 mb-1 flex items-center gap-2"><i
+                                class="fa-solid fa-id-card text-sky-500"></i> Hồ Sơ Operator</h3>
+                        <p class="text-sm text-slate-500 mb-4">Chỉ nhân viên đang hoạt động mới sửa được — tương ứng
+                            <code class="text-xs bg-slate-100 px-1 rounded">updateOperatorMetadata</code>. Tự cập nhật
+                            bất cứ lúc nào, không cần chờ công ty phê duyệt.
+                        </p>
+                        <textarea id="profile-bio-input" rows="3"
+                            class="w-full border border-slate-300 rounded-xl px-4 py-3 outline-none text-sm mb-3"
+                            placeholder="Thông tin định danh / CV rút gọn..."></textarea>
+                        <div class="flex items-center justify-between">
+                            <button onclick="saveProfileMetadata()" id="btn-save-profile"
+                                class="bg-sky-600 hover:bg-sky-700 text-white px-6 py-2.5 rounded-lg font-bold transition-colors"><i
+                                    class="fa-solid fa-floppy-disk"></i> Lưu Hồ Sơ</button>
+                            <span class="text-xs text-slate-400" id="profile-bio-updated"></span>
+                        </div>
                     </div>
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-                        <p class="text-xs font-bold text-slate-400 uppercase mb-2">Ví Dự Phòng Cho</p>
-                        <p class="text-sm text-slate-700" id="account-delegate-status"></p>
+                </div>
+
+                <!-- TAB: HOẠT ĐỘNG -->
+                <div id="account-tab-activity" class="hidden">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i
+                                class="fa-solid fa-clock-rotate-left text-indigo-500"></i> Lịch sử hoạt động on-chain
+                        </h3>
+                        <div class="space-y-4" id="account-activity-list"></div>
+                        <p class="hidden text-sm text-slate-400 text-center py-6" id="account-activity-empty">Chưa có
+                            hoạt động nào được ghi nhận cho ví này.</p>
+                    </div>
+                </div>
+
+                <!-- TAB: BẢO MẬT -->
+                <div id="account-tab-security" class="hidden">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-4">
+                        <h3 class="font-bold text-slate-800 mb-1 flex items-center gap-2"><i
+                                class="fa-solid fa-shield-halved text-indigo-500"></i> Ví dự phòng</h3>
+                        <p class="text-sm text-slate-500 mb-3" id="account-security-delegate-summary"></p>
+                        <button onclick="switchView('security')"
+                            class="text-sm font-semibold text-indigo-600 hover:underline">Quản lý ví dự phòng →</button>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="font-bold text-slate-800 mb-1 flex items-center gap-2"><i
+                                class="fa-solid fa-life-ring text-amber-500"></i> Khôi phục khẩn cấp</h3>
+                        <p class="text-sm text-slate-500 mb-3">Nếu ví này từng được chỉ định làm ví dự phòng cho một
+                            nhân viên khác, bạn có thể cứu hộ tại đây khi cần.</p>
+                        <button onclick="switchView('recovery')"
+                            class="text-sm font-semibold text-amber-600 hover:underline">Đi tới Cổng Khôi Phục
+                            →</button>
                     </div>
                 </div>
             </section>
@@ -314,7 +595,8 @@
                 <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-8">
                     <div>
                         <h2 class="text-3xl font-bold text-slate-800 mb-1">Ví Chứng Từ Cá Nhân</h2>
-                        <p class="text-slate-500">Xin chào <strong class="text-slate-700">Nguyễn Văn A</strong>. Dưới đây là các chứng từ số thuộc sở hữu của bạn.</p>
+                        <p class="text-slate-500">Xin chào <strong class="text-slate-700"
+                                id="my-docs-owner-name"></strong>. Dưới đây là các chứng từ số thuộc sở hữu của bạn.</p>
                     </div>
                     <div class="flex flex-wrap gap-3 sm:gap-4">
                         <div class="text-center px-4 py-2 bg-white rounded-xl shadow-sm border border-slate-200">
@@ -336,262 +618,575 @@
             </section>
 
             <!-- ================= VIEW: VERIFY (PUBLIC) ================= -->
-            <section id="view-verify" class="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto h-full flex flex-col justify-center fade-in hidden">
-                <div class="text-center mb-10"><h2 class="text-3xl font-bold text-slate-800 mb-4">Cổng Xác Minh Chứng Từ Quốc Gia</h2><p class="text-slate-500">Tra cứu nhanh bằng mã định danh, không cần tài khoản, không tốn phí.</p></div>
-                <div class="bg-white p-2 rounded-2xl shadow-lg border border-slate-100 flex gap-2 max-w-2xl mx-auto w-full relative z-10">
-                    <div class="flex-1 flex items-center pl-4 text-slate-400"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="search-input" class="w-full bg-transparent border-none focus:ring-0 px-3 py-3 text-slate-700 placeholder-slate-400 outline-none" placeholder="VD: CERT-8899..." value="CERT-8899-ABCD"></div>
-                    <button onclick="handleSearch()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-8 py-3 rounded-xl font-medium transition-all shadow-md flex items-center gap-2 shrink-0"><span id="search-text">Kiểm tra</span><div id="search-loader" class="loader hidden border-white border-top-transparent"></div></button>
+            <section id="view-verify"
+                class="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto h-full flex flex-col justify-center fade-in hidden">
+                <div class="text-center mb-10">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-4">Cổng Xác Minh Chứng Từ Quốc Gia</h2>
+                    <p class="text-slate-500">Tra cứu nhanh bằng mã định danh, không cần tài khoản, không tốn phí.</p>
                 </div>
-                <div id="search-notfound" class="mt-8 max-w-2xl mx-auto w-full hidden fade-in bg-white rounded-2xl shadow-xl border border-slate-100 p-5 sm:p-8 text-center text-slate-500">
+                <div
+                    class="bg-white p-2 rounded-2xl shadow-lg border border-slate-100 flex gap-2 max-w-2xl mx-auto w-full relative z-10">
+                    <div class="flex-1 flex items-center pl-4 text-slate-400"><i
+                            class="fa-solid fa-magnifying-glass"></i><input type="text" id="search-input"
+                            class="w-full bg-transparent border-none focus:ring-0 px-3 py-3 text-slate-700 placeholder-slate-400 outline-none"
+                            placeholder="VD: CERT-8899..." value="CERT-8899-ABCD"></div>
+                    <button onclick="handleSearch()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-8 py-3 rounded-xl font-medium transition-all shadow-md flex items-center gap-2 shrink-0"><span
+                            id="search-text">Kiểm tra</span>
+                        <div id="search-loader" class="loader hidden border-white border-top-transparent"></div>
+                    </button>
+                </div>
+                <div id="search-notfound"
+                    class="mt-8 max-w-2xl mx-auto w-full hidden fade-in bg-white rounded-2xl shadow-xl border border-slate-100 p-5 sm:p-8 text-center text-slate-500">
                     <i class="fa-solid fa-circle-question text-3xl text-slate-300 mb-3"></i>
                     <p>Không tìm thấy chứng từ với mã này trên chuỗi.</p>
                 </div>
-                <div id="search-result" class="mt-8 bg-white rounded-2xl shadow-xl border border-slate-100 p-5 sm:p-8 max-w-2xl mx-auto w-full hidden fade-in transition-all duration-300">
-                    <div class="flex flex-col-reverse sm:flex-row items-start justify-between gap-4 mb-6 pb-6 border-b border-slate-100">
+                <div id="search-result"
+                    class="mt-8 bg-white rounded-2xl shadow-xl border border-slate-100 p-5 sm:p-8 max-w-2xl mx-auto w-full hidden fade-in transition-all duration-300">
+                    <div
+                        class="flex flex-col-reverse sm:flex-row items-start justify-between gap-4 mb-6 pb-6 border-b border-slate-100">
                         <div>
-                            <div class="flex items-center gap-3 mb-2"><h3 class="text-2xl font-bold text-slate-800" id="cert-title"></h3><span id="cert-status-badge" class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 transition-all"></span></div>
-                            <p class="text-slate-500">Cấp cho: <strong class="text-slate-800" id="cert-owner"></strong></p>
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="text-2xl font-bold text-slate-800" id="cert-title"></h3><span
+                                    id="cert-status-badge"
+                                    class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 transition-all"></span>
+                            </div>
+                            <p class="text-slate-500">Cấp cho: <strong class="text-slate-800" id="cert-owner"></strong>
+                            </p>
                         </div>
                         <div id="qr-container"><img id="qr-img" src="" class="rounded-lg border border-slate-200"></div>
                     </div>
-                    <div id="revoked-warning" class="hidden bg-red-50 border border-red-200 rounded-xl p-4 mb-4 text-red-700 text-sm flex gap-3 items-start"><i class="fa-solid fa-triangle-exclamation mt-1"></i><div><p class="font-bold">Đã bị thu hồi!</p><p id="revoked-reason-text" class="mt-1"></p></div></div>
+                    <div id="revoked-warning"
+                        class="hidden bg-red-50 border border-red-200 rounded-xl p-4 mb-4 text-red-700 text-sm flex gap-3 items-start">
+                        <i class="fa-solid fa-triangle-exclamation mt-1"></i>
+                        <div>
+                            <p class="font-bold">Đã bị thu hồi!</p>
+                            <p id="revoked-reason-text" class="mt-1"></p>
+                        </div>
+                    </div>
                     <div class="bg-slate-50 rounded-xl p-5 border border-slate-100" id="trust-container">
-                        <div class="flex justify-between items-end mb-3"><div><p class="text-xs font-bold text-slate-500 uppercase">Mức độ tin cậy</p><p class="text-sm font-medium text-slate-700 mt-1" id="trust-status-text"></p></div><span class="text-xl font-bold text-blue-600" id="trust-fraction"></span></div>
-                        <div class="w-full bg-slate-200 rounded-full h-2.5 mb-4"><div class="bg-blue-600 h-2.5 rounded-full transition-all duration-1000" style="width: 0%" id="trust-progress"></div></div>
+                        <div class="flex justify-between items-end mb-3">
+                            <div>
+                                <p class="text-xs font-bold text-slate-500 uppercase">Mức độ tin cậy</p>
+                                <p class="text-sm font-medium text-slate-700 mt-1" id="trust-status-text"></p>
+                            </div><span class="text-xl font-bold text-blue-600" id="trust-fraction"></span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5 mb-4">
+                            <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-1000" style="width: 0%"
+                                id="trust-progress"></div>
+                        </div>
                         <div class="space-y-3" id="signers-list"></div>
                     </div>
-                    <button id="cert-ipfs-btn" class="hidden mt-4 w-full text-center text-slate-600 font-semibold hover:bg-slate-50 py-2.5 rounded-lg transition-colors border border-slate-200"><i class="fa-solid fa-file-lines"></i> Xem Nội Dung Trên IPFS</button>
+                    <button id="cert-ipfs-btn"
+                        class="hidden mt-4 w-full text-center text-slate-600 font-semibold hover:bg-slate-50 py-2.5 rounded-lg transition-colors border border-slate-200"><i
+                            class="fa-solid fa-file-lines"></i> Xem Nội Dung Trên IPFS</button>
                 </div>
             </section>
 
             <!-- ================= VIEW: EXPLORER (PUBLIC) ================= -->
             <section id="view-explorer" class="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto h-full fade-in hidden">
-                <div class="mb-8"><h2 class="text-3xl font-bold text-slate-800 mb-1">Trình Khám Phá Giao Thức (Explorer)</h2><p class="text-slate-500">Toàn bộ dữ liệu tài sản, nhân sự và hành vi trên nền tảng được công khai minh bạch thời gian thực.</p></div>
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-1">Trình Khám Phá Giao Thức</h2>
+                    <p class="text-slate-500">Toàn bộ dữ liệu tài sản, nhân sự và hành vi trên nền tảng được công khai
+                        minh bạch thời gian thực.</p>
+                </div>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
-                    <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-                        <p class="text-sm font-semibold text-blue-100 uppercase tracking-wider mb-2">Tổng Giá Trị Đảm Bảo (TVL)</p>
-                        <p class="text-4xl font-bold mb-1"><span id="explorer-tvl">0</span> <span class="text-2xl font-normal opacity-80">ETH</span></p>
+                    <div
+                        class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                        <p class="text-sm font-semibold text-blue-100 uppercase tracking-wider mb-2">Tổng Giá Trị Đảm
+                            Bảo</p>
+                        <p class="text-4xl font-bold mb-1"><span id="explorer-tvl">0</span> <span
+                                class="text-2xl font-normal opacity-80">ETH</span></p>
                     </div>
-                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-center">
-                        <div class="flex items-center gap-4 mb-2"><div class="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-building-user"></i></div><div><p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Doanh nghiệp (Tenants)</p><p class="text-2xl font-bold text-slate-800" id="explorer-tenant-count">0</p></div></div>
+                    <div
+                        class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-center">
+                        <div class="flex items-center gap-4 mb-2">
+                            <div
+                                class="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-building-user"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Doanh nghiệp
+                                </p>
+                                <p class="text-2xl font-bold text-slate-800" id="explorer-tenant-count">0</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-center">
-                        <div class="flex items-center gap-4 mb-2"><div class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-file-contract"></i></div><div><p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Tổng Chứng Từ</p><p class="text-2xl font-bold text-slate-800" id="explorer-doc-count">0</p></div></div>
+                    <div
+                        class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-center">
+                        <div class="flex items-center gap-4 mb-2">
+                            <div
+                                class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-file-contract"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Tổng Chứng Từ
+                                </p>
+                                <p class="text-2xl font-bold text-slate-800" id="explorer-doc-count">0</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mb-8">
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                        <h3 class="font-bold text-lg text-slate-800 mb-4 border-b border-slate-100 pb-3 flex items-center gap-2"><i class="fa-solid fa-ranking-star text-amber-500"></i> Xếp hạng Uy tín</h3>
+                        <h3
+                            class="font-bold text-lg text-slate-800 mb-4 border-b border-slate-100 pb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-ranking-star text-amber-500"></i> Xếp hạng Uy tín
+                        </h3>
                         <div class="space-y-4" id="explorer-ranking"></div>
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                        <h3 class="font-bold text-lg text-slate-800 mb-4 border-b border-slate-100 pb-3 flex items-center gap-2"><i class="fa-solid fa-list-ol text-blue-500"></i> Dòng Sự Kiện Gần Nhất</h3>
+                        <h3
+                            class="font-bold text-lg text-slate-800 mb-4 border-b border-slate-100 pb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-list-ol text-blue-500"></i> Dòng Sự Kiện Gần Nhất
+                        </h3>
                         <div class="space-y-4" id="explorer-events"></div>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                        <h3 class="font-bold text-lg text-slate-800 p-6 pb-3 flex items-center gap-2"><i class="fa-solid fa-building-shield text-blue-500"></i> Danh Sách Doanh Nghiệp</h3>
-                        <div class="table-scroll"><table class="w-full text-left border-collapse"><thead class="bg-slate-50 border-b border-slate-200"><tr class="text-xs uppercase text-slate-500"><th class="p-3 pl-6">Tổ chức</th><th class="p-3">Tổng cọc</th><th class="p-3">Trạng thái</th></tr></thead><tbody id="explorer-tenant-table"></tbody></table></div>
+                        <h3 class="font-bold text-lg text-slate-800 p-6 pb-3 flex items-center gap-2"><i
+                                class="fa-solid fa-building-shield text-blue-500"></i> Danh Sách Doanh Nghiệp</h3>
+                        <div class="table-scroll">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-50 border-b border-slate-200">
+                                    <tr class="text-xs uppercase text-slate-500">
+                                        <th class="p-3 pl-6">Tổ chức</th>
+                                        <th class="p-3">Tổng cọc</th>
+                                        <th class="p-3">Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="explorer-tenant-table"></tbody>
+                            </table>
+                        </div>
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                        <h3 class="font-bold text-lg text-slate-800 mb-3 flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-indigo-500"></i> Tra Cứu Lịch Sử Khôi Phục Ví</h3>
-                        <p class="text-sm text-slate-500 mb-3">Kiểm tra xem một địa chỉ/tên nhân sự hiện tại có phải "hậu duệ" của một ví từng bị mất quyền truy cập hay không.</p>
-                        <div class="flex gap-2"><input type="text" id="recovery-lookup-input" placeholder="Tên nhân sự hoặc địa chỉ ví gốc..." class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"><button onclick="lookupRecoveryAlias()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Tra cứu</button></div>
+                        <h3 class="font-bold text-lg text-slate-800 mb-3 flex items-center gap-2"><i
+                                class="fa-solid fa-clock-rotate-left text-indigo-500"></i> Tra Cứu Lịch Sử Khôi Phục Ví
+                        </h3>
+                        <p class="text-sm text-slate-500 mb-3">Kiểm tra xem một địa chỉ/tên nhân sự hiện tại có phải
+                            "hậu duệ" của một ví từng bị mất quyền truy cập hay không.</p>
+                        <div class="flex gap-2"><input type="text" id="recovery-lookup-input"
+                                placeholder="Tên nhân sự hoặc địa chỉ ví gốc..."
+                                class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"><button
+                                onclick="lookupRecoveryAlias()"
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Tra
+                                cứu</button></div>
                         <div id="recovery-lookup-result"></div>
                     </div>
                     <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
-                            <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2"><i class="fa-solid fa-users text-purple-500"></i> Danh Sách Nhân Sự Theo Doanh Nghiệp</h3>
-                            <select id="explorer-operator-tenant-select" onchange="renderExplorerOperators(this.value)" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"></select>
+                            <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2"><i
+                                    class="fa-solid fa-users text-purple-500"></i> Danh Sách Nhân Sự Theo Doanh Nghiệp
+                            </h3>
+                            <select id="explorer-operator-tenant-select" onchange="renderExplorerOperators(this.value)"
+                                class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"></select>
                         </div>
-                        <p class="text-sm text-slate-500 mb-4">Dữ liệu đọc công khai — bất kỳ ai (kể cả đối tác tuyển dụng) cũng tra cứu được, không cần tài khoản.</p>
-                        <div class="table-scroll"><table class="w-full text-left border-collapse"><thead class="bg-slate-50 border-b border-slate-200"><tr class="text-xs uppercase text-slate-500"><th class="p-3">Nhân viên</th><th class="p-3">Stake</th><th class="p-3">Trạng thái</th></tr></thead><tbody id="explorer-operator-table"></tbody></table></div>
+                        <p class="text-sm text-slate-500 mb-4">Dữ liệu đọc công khai — bất kỳ ai (kể cả đối tác tuyển
+                            dụng) cũng tra cứu được, không cần tài khoản.</p>
+                        <div class="table-scroll">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-50 border-b border-slate-200">
+                                    <tr class="text-xs uppercase text-slate-500">
+                                        <th class="p-3">Nhân viên</th>
+                                        <th class="p-3">Stake</th>
+                                        <th class="p-3">Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="explorer-operator-table"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </section>
 
             <!-- ================= VIEW: ISSUE (OPERATOR) ================= -->
             <section id="view-issue" class="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto hidden fade-in">
-                <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-8"><div><h2 class="text-2xl font-bold text-slate-800">Cổng Phát Hành Chứng Từ</h2><p class="text-slate-500">Giảng viên / Nhân viên ủy quyền</p></div><div class="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-center gap-4 shadow-sm"><div class="bg-blue-100 p-2 rounded-lg text-blue-600"><i class="fa-brands fa-ethereum text-xl"></i></div><div><p class="text-xs text-slate-500 font-semibold">Tài sản đảm bảo</p><p class="font-bold text-slate-800 text-lg" id="issue-stake-badge">0.00 ETH</p></div></div></div>
+                <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Cổng Phát Hành Chứng Từ</h2>
+                        <p class="text-slate-500">Giảng viên / Nhân viên ủy quyền</p>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-center gap-4 shadow-sm">
+                        <div class="bg-blue-100 p-2 rounded-lg text-blue-600"><i
+                                class="fa-brands fa-ethereum text-xl"></i></div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-semibold">Tài sản đảm bảo</p>
+                            <p class="font-bold text-slate-800 text-lg" id="issue-stake-badge">0.00 ETH</p>
+                        </div>
+                    </div>
+                </div>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                     <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                         <h3 class="font-bold text-lg mb-6 border-b pb-3">Tạo Bản Ghi Mới</h3>
                         <div class="space-y-5">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5"><div><label class="block text-sm font-medium text-slate-700 mb-1">Tên đối tượng / Học viên</label><input type="text" id="issue-owner-input" class="w-full border border-slate-300 rounded-lg px-4 py-2" value="Lê Văn C"></div><div><label class="block text-sm font-medium text-slate-700 mb-1">Quy tắc (DocType)</label><select id="issue-doctype-select" class="w-full border border-slate-300 rounded-lg px-4 py-2"></select></div></div>
-                            <div><label class="block text-sm font-medium text-slate-700 mb-1">Mã hóa Dữ liệu gốc (Hash/CID)</label><input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2 text-slate-500 bg-slate-50 font-mono" value="QmYwAPJzv5CZsnA62..." readonly></div>
-                            <div class="pt-2 flex justify-end"><button onclick="handleIssue()" id="btn-issue" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium flex items-center gap-2"><i class="fa-solid fa-file-signature"></i> Ký & Lưu Blockchain</button></div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Tên đối tượng / Học
+                                        viên</label><input type="text" id="issue-owner-input"
+                                        class="w-full border border-slate-300 rounded-lg px-4 py-2" value="Lê Văn C">
+                                </div>
+                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Loại chứng
+                                        chỉ</label><select id="issue-doctype-select"
+                                        class="w-full border border-slate-300 rounded-lg px-4 py-2"></select></div>
+                            </div>
+                            <div><label class="block text-sm font-medium text-slate-700 mb-1">Mã định danh dữ liệu
+                                    gốc</label><input type="text"
+                                    class="w-full border border-slate-300 rounded-lg px-4 py-2 text-slate-500 bg-slate-50 font-mono"
+                                    value="QmYwAPJzv5CZsnA62..." readonly></div>
+                            <div class="pt-2 flex justify-end"><button onclick="handleIssue()" id="btn-issue"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium flex items-center gap-2"><i
+                                        class="fa-solid fa-file-signature"></i> Ký & Lưu Blockchain</button></div>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6"><h3 class="font-bold text-lg mb-4">Lịch sử của bạn</h3><div class="space-y-4" id="issue-history-list"></div></div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="font-bold text-lg mb-4">Lịch sử của bạn</h3>
+                        <div class="space-y-4" id="issue-history-list"></div>
+                    </div>
                 </div>
             </section>
 
             <!-- ================= VIEW: COSIGN (OPERATOR) ================= -->
             <section id="view-cosign" class="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto hidden fade-in">
-                <div class="mb-8"><h2 class="text-2xl font-bold text-slate-800">Phê Duyệt & Đồng Ký</h2><p class="text-slate-500">Bạn đang dùng quyền: Quản lý Chuyên môn (Role ID: 2)</p></div>
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">Phê Duyệt & Đồng Ký</h2>
+                    <p class="text-slate-500">Bạn đang dùng quyền: Quản lý Chuyên môn (Vai trò #2)</p>
+                </div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="table-scroll"><table class="w-full text-left border-collapse"><thead class="bg-slate-50 border-b border-slate-200"><tr class="text-xs uppercase text-slate-500"><th class="p-4">Mã Chứng Chỉ</th><th class="p-4">Thông tin</th><th class="p-4 text-right">Hành động</th></tr></thead>
-                        <tbody id="cosign-table-body"></tbody>
-                    </table></div>
-                    <div id="empty-cosign" class="hidden p-12 text-center text-slate-400"><p>Không có chứng từ chờ duyệt.</p></div>
+                    <div class="table-scroll">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr class="text-xs uppercase text-slate-500">
+                                    <th class="p-4">Mã Chứng Chỉ</th>
+                                    <th class="p-4">Thông tin</th>
+                                    <th class="p-4 text-right">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cosign-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div id="empty-cosign" class="hidden p-12 text-center text-slate-400">
+                        <p>Không có chứng từ chờ duyệt.</p>
+                    </div>
                 </div>
             </section>
 
             <!-- ================= VIEW: STAKE (OPERATOR) ================= -->
             <section id="view-stake" class="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto hidden fade-in">
-                <div class="mb-8"><h2 class="text-2xl font-bold text-slate-800">Tài Sản Đảm Bảo Của Bạn</h2><p class="text-slate-500">Minh bạch 100%. Công ty không có quyền giam giữ trái phép.</p></div>
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">Tài Sản Đảm Bảo Của Bạn</h2>
+                    <p class="text-slate-500">Minh bạch 100%. Công ty không có quyền giam giữ trái phép.</p>
+                </div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-8 text-center">
                     <p class="text-4xl font-bold text-slate-800 mb-6" id="stake-amount">0.00 ETH</p>
                     <div class="flex flex-col sm:flex-row gap-3 mb-4">
-                        <input type="number" id="topup-input" placeholder="Số ETH muốn nạp thêm" class="flex-1 border border-slate-300 rounded-xl px-4 py-3 outline-none">
-                        <button onclick="topUpStake()" id="btn-topup" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-colors shrink-0"><i class="fa-solid fa-circle-plus"></i> Nạp Thêm</button>
+                        <input type="number" id="topup-input" placeholder="Số ETH muốn nạp thêm"
+                            class="flex-1 border border-slate-300 rounded-xl px-4 py-3 outline-none">
+                        <button onclick="topUpStake()" id="btn-topup"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-colors shrink-0"><i
+                                class="fa-solid fa-circle-plus"></i> Nạp Thêm</button>
                     </div>
-                    <p id="topup-disabled-note" class="hidden text-xs text-amber-600 mb-4">Tài khoản đang bị tạm ngưng — cần Operator Manager kích hoạt lại trước khi nạp thêm cọc.</p>
-                    <button onclick="requestUnstake()" id="btn-unstake" class="w-full border-2 border-red-200 text-red-600 hover:bg-red-50 py-3 rounded-xl font-bold transition-colors">Gửi Yêu Cầu Rút Tiền Nghỉ Việc</button>
-                    <div id="unstake-pending-area" class="hidden mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <p id="topup-disabled-note" class="hidden text-xs text-amber-600 mb-4">Tài khoản đang bị tạm ngưng —
+                        cần Operator Manager kích hoạt lại trước khi nạp thêm cọc.</p>
+                    <button onclick="requestUnstake()" id="btn-unstake"
+                        class="w-full border-2 border-red-200 text-red-600 hover:bg-red-50 py-3 rounded-xl font-bold transition-colors">Gửi
+                        Yêu Cầu Rút Tiền Nghỉ Việc</button>
+                    <div id="unstake-pending-area"
+                        class="hidden mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
                         <p class="text-amber-700 font-bold mb-3" id="unstake-pending-text"></p>
-                        <button onclick="executeUnstakeAction()" id="btn-execute-unstake" class="w-full bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-lg font-bold transition-colors"><i class="fa-solid fa-hand-holding-dollar"></i> Rút Tiền Ngay (demo: bỏ qua thời gian chờ)</button>
+                        <button onclick="executeUnstakeAction()" id="btn-execute-unstake"
+                            class="w-full bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-lg font-bold transition-colors"><i
+                                class="fa-solid fa-hand-holding-dollar"></i> Rút Tiền Ngay (demo: bỏ qua thời gian
+                            chờ)</button>
                     </div>
                 </div>
             </section>
 
             <!-- ================= VIEW: SECURITY (OPERATOR) ================= -->
             <section id="view-security" class="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto hidden fade-in">
-                <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-8"><div><h2 class="text-2xl font-bold text-slate-800">Bảo Mật Kép: Ví Dự Phòng</h2><p class="text-slate-500">Đề phòng rủi ro mất Private Key</p></div></div>
+                <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Bảo Mật Kép: Ví Dự Phòng</h2>
+                        <p class="text-slate-500">Đề phòng rủi ro mất Private Key</p>
+                    </div>
+                </div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="bg-indigo-50 border-b border-indigo-100 p-6 flex items-start gap-4">
-                        <div class="bg-indigo-100 text-indigo-600 p-3 rounded-full text-2xl"><i class="fa-solid fa-shield-halved"></i></div>
-                        <div><h3 class="font-bold text-indigo-900 text-lg mb-1">Chỉ định địa chỉ khôi phục</h3><p class="text-sm text-indigo-700">Ví dự phòng này có quyền bưng toàn bộ tài sản sang nơi an toàn khi ví chính báo mất.</p><p class="text-sm text-indigo-900 font-semibold mt-2" id="delegate-current"></p></div>
+                        <div class="bg-indigo-100 text-indigo-600 p-3 rounded-full text-2xl"><i
+                                class="fa-solid fa-shield-halved"></i></div>
+                        <div>
+                            <h3 class="font-bold text-indigo-900 text-lg mb-1">Chỉ định địa chỉ khôi phục</h3>
+                            <p class="text-sm text-indigo-700">Ví dự phòng này có quyền bưng toàn bộ tài sản sang nơi an
+                                toàn khi ví chính báo mất.</p>
+                            <p class="text-sm text-indigo-900 font-semibold mt-2" id="delegate-current"></p>
+                        </div>
                     </div>
                     <div class="p-8">
                         <div class="flex flex-col sm:flex-row gap-3">
-                            <input type="text" id="delegate-input" class="flex-1 border border-slate-300 bg-slate-50 text-slate-700 rounded-xl px-4 py-3 font-mono outline-none" placeholder="Nhập địa chỉ ví lạnh 0x...">
-                            <button onclick="saveDelegate()" id="btn-save-delegate" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold transition-all">Lưu Ví</button>
+                            <select id="delegate-input"
+                                class="flex-1 border border-slate-300 bg-slate-50 text-slate-700 rounded-xl px-4 py-3 outline-none"></select>
+                            <button onclick="saveDelegate()" id="btn-save-delegate"
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold transition-all">Lưu
+                                Ví</button>
                         </div>
                     </div>
-                </div>
-            </section>
-
-            <!-- ================= VIEW: PROFILE & JOIN (OPERATOR) ================= -->
-            <section id="view-profile" class="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto hidden fade-in">
-                <div class="mb-8"><h2 class="text-2xl font-bold text-slate-800">Hồ Sơ Của Tôi</h2><p class="text-slate-500">Chỉ nhân viên đang hoạt động mới sửa được — tương ứng <code class="text-xs bg-slate-100 px-1 rounded">updateOperatorMetadata</code></p></div>
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                    <h3 class="font-bold text-slate-800 mb-1 flex items-center gap-2"><i class="fa-solid fa-id-card text-sky-500"></i> Hồ Sơ Của Bạn</h3>
-                    <p class="text-sm text-slate-500 mb-4">Bạn tự cập nhật bất cứ lúc nào khi đang hoạt động, không cần chờ công ty phê duyệt.</p>
-                    <textarea id="profile-bio-input" rows="3" class="w-full border border-slate-300 rounded-xl px-4 py-3 outline-none text-sm mb-3" placeholder="Thông tin định danh / CV rút gọn..."></textarea>
-                    <button onclick="saveProfileMetadata()" id="btn-save-profile" class="bg-sky-600 hover:bg-sky-700 text-white px-6 py-2.5 rounded-lg font-bold transition-colors"><i class="fa-solid fa-floppy-disk"></i> Lưu Hồ Sơ</button>
                 </div>
             </section>
 
             <!-- ================= VIEW: JOIN AS OPERATOR (PUBLIC — permissionless, mọi vai trò) ================= -->
             <section id="view-join" class="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto hidden fade-in">
-                <div class="mb-8"><h2 class="text-2xl font-bold text-slate-800">Gia Nhập Làm Nhân Viên Phát Hành</h2><p class="text-slate-500">Bất kỳ ví nào cũng tự gia nhập được — không cần đăng nhập vai trò gì trước, không cần ai duyệt, chỉ cần đủ điều kiện</p></div>
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">Gia Nhập Làm Nhân Viên Phát Hành</h2>
+                    <p class="text-slate-500">Bất kỳ ví nào cũng tự gia nhập được — không cần đăng nhập vai trò gì
+                        trước, không cần ai duyệt, chỉ cần đủ điều kiện</p>
+                </div>
 
-                <div id="join-already-active" class="hidden bg-emerald-50 border border-emerald-200 rounded-2xl p-6 mb-6">
-                    <div class="flex items-center gap-3 mb-2"><i class="fa-solid fa-circle-check text-emerald-600 text-xl"></i><h3 class="font-bold text-emerald-900">Ví Của Bạn Đã Là Operator</h3></div>
+                <div id="join-already-active"
+                    class="hidden bg-emerald-50 border border-emerald-200 rounded-2xl p-6 mb-6">
+                    <div class="flex items-center gap-3 mb-2"><i
+                            class="fa-solid fa-circle-check text-emerald-600 text-xl"></i>
+                        <h3 class="font-bold text-emerald-900">Ví Của Bạn Đã Là Operator</h3>
+                    </div>
                     <p class="text-sm text-emerald-800" id="join-active-summary"></p>
                     <div class="flex gap-3 mt-4">
-                        <button onclick="switchView('stake')" class="text-sm font-semibold text-emerald-700 hover:underline">Xem Tiền Cọc →</button>
-                        <button onclick="switchView('profile')" class="text-sm font-semibold text-emerald-700 hover:underline">Cập Nhật Hồ Sơ →</button>
+                        <button onclick="switchView('stake')"
+                            class="text-sm font-semibold text-emerald-700 hover:underline">Xem Tiền Cọc →</button>
+                        <button onclick="switchView('account')"
+                            class="text-sm font-semibold text-emerald-700 hover:underline">Cập Nhật Hồ Sơ →</button>
                     </div>
                 </div>
 
                 <div id="join-form-area" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                    <p class="text-sm text-slate-500 mb-4">Chọn tổ chức muốn gia nhập, đặt cọc đủ mức tối thiểu là được kích hoạt ngay lập tức (<code class="text-xs bg-slate-100 px-1 rounded">joinAsOperator(tenantId, ...)</code> — permissionless, hệ thống chỉ từ chối nếu tổ chức đang tạm khoá, cọc chưa đủ, hoặc ví này đã đang hoạt động).</p>
+                    <p class="text-sm text-slate-500 mb-4">Chọn tổ chức muốn gia nhập, đặt cọc đủ mức tối thiểu là được
+                        kích hoạt ngay lập tức (<code
+                            class="text-xs bg-slate-100 px-1 rounded">joinAsOperator(tenantId, ...)</code> —
+                        permissionless, hệ thống chỉ từ chối nếu tổ chức đang tạm khoá, cọc chưa đủ, hoặc ví này đã đang
+                        hoạt động).</p>
                     <label class="block text-xs font-medium text-slate-500 mb-1">Tổ chức muốn gia nhập</label>
-                    <select id="join-tenant-select" onchange="renderJoin()" class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm mb-3"></select>
-                    <input type="number" id="join-stake-input" placeholder="Số ETH đặt cọc" class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm mb-3">
-                    <textarea id="join-bio-input" rows="2" class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm mb-3" placeholder="Hồ sơ giới thiệu / CV rút gọn (tuỳ chọn)..."></textarea>
-                    <button onclick="joinAsOperatorAction()" id="btn-join" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-bold transition-colors"><i class="fa-solid fa-right-to-bracket"></i> Kích Hoạt Ví Làm Operator</button>
-                    <p class="text-xs text-slate-400 mt-3">Mức cọc tối thiểu của <span id="join-tenant-name" class="font-medium"></span>: <span id="join-min-stake" class="font-bold text-slate-600"></span></p>
+                    <select id="join-tenant-select" onchange="renderJoin()"
+                        class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm mb-3"></select>
+                    <input type="number" id="join-stake-input" placeholder="Số ETH đặt cọc"
+                        class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm mb-3">
+                    <textarea id="join-bio-input" rows="2"
+                        class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm mb-3"
+                        placeholder="Hồ sơ giới thiệu / CV rút gọn (tuỳ chọn)..."></textarea>
+                    <button onclick="joinAsOperatorAction()" id="btn-join"
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-bold transition-colors"><i
+                            class="fa-solid fa-right-to-bracket"></i> Kích Hoạt Ví Làm Operator</button>
+                    <p class="text-xs text-slate-400 mt-3">Mức cọc tối thiểu của <span id="join-tenant-name"
+                            class="font-medium"></span>: <span id="join-min-stake"
+                            class="font-bold text-slate-600"></span></p>
                 </div>
             </section>
 
             <!-- ================= VIEW: APPLY AS TENANT (PUBLIC — request only, admin vẫn phải duyệt) ================= -->
             <section id="view-apply-tenant" class="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto hidden fade-in">
-                <div class="mb-8"><h2 class="text-2xl font-bold text-slate-800">Đăng Ký Doanh Nghiệp Lên Nền Tảng</h2><p class="text-slate-500">Ai cũng nộp được yêu cầu, nhưng khác với gia nhập nhân viên — <code class="text-xs bg-slate-100 px-1 rounded">createTenant</code> chỉ Protocol Admin mới thực thi được sau khi thẩm định hồ sơ pháp lý</p></div>
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">Đăng Ký Doanh Nghiệp Lên Nền Tảng</h2>
+                    <p class="text-slate-500">Ai cũng nộp được yêu cầu, nhưng khác với gia nhập nhân viên — <code
+                            class="text-xs bg-slate-100 px-1 rounded">createTenant</code> chỉ Protocol Admin mới thực
+                        thi được sau khi thẩm định hồ sơ pháp lý</p>
+                </div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
-                        <input type="text" id="apply-tenant-name" placeholder="Tên doanh nghiệp" class="border border-slate-300 rounded-lg px-4 py-2 text-sm sm:col-span-2">
-                        <input type="text" id="apply-tenant-admin" placeholder="Ví đề xuất làm Admin 0x..." class="border border-slate-300 rounded-lg px-4 py-2 text-sm font-mono">
-                        <input type="text" id="apply-tenant-opmanager" placeholder="Ví đề xuất làm QL Vận hành 0x..." class="border border-slate-300 rounded-lg px-4 py-2 text-sm font-mono">
-                        <input type="text" id="apply-tenant-treasury" placeholder="Ví đề xuất làm Treasury 0x..." class="border border-slate-300 rounded-lg px-4 py-2 text-sm font-mono">
-                        <input type="number" id="apply-tenant-minstake" placeholder="Đề xuất mức cọc tối thiểu (ETH)" class="border border-slate-300 rounded-lg px-4 py-2 text-sm">
+                        <input type="text" id="apply-tenant-name" placeholder="Tên doanh nghiệp"
+                            class="border border-slate-300 rounded-lg px-4 py-2 text-sm sm:col-span-2">
+                        <input type="text" id="apply-tenant-admin" placeholder="Ví đề xuất làm Admin 0x..."
+                            class="border border-slate-300 rounded-lg px-4 py-2 text-sm font-mono">
+                        <input type="text" id="apply-tenant-opmanager" placeholder="Ví đề xuất làm QL Vận hành 0x..."
+                            class="border border-slate-300 rounded-lg px-4 py-2 text-sm font-mono">
+                        <input type="text" id="apply-tenant-treasury" placeholder="Ví đề xuất làm Treasury 0x..."
+                            class="border border-slate-300 rounded-lg px-4 py-2 text-sm font-mono">
+                        <input type="number" id="apply-tenant-minstake" placeholder="Đề xuất mức cọc tối thiểu (ETH)"
+                            class="border border-slate-300 rounded-lg px-4 py-2 text-sm">
                     </div>
-                    <textarea id="apply-tenant-note" rows="2" class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm mb-3" placeholder="Ghi chú hồ sơ pháp lý / lý do đăng ký..."></textarea>
-                    <button onclick="submitTenantApplication()" id="btn-apply-tenant" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-bold transition-colors"><i class="fa-solid fa-paper-plane"></i> Gửi Yêu Cầu Đăng Ký</button>
-                    <p class="text-xs text-slate-400 mt-3">Yêu cầu sẽ được Protocol Admin xét duyệt (thẩm định hồ sơ pháp lý) trước khi tổ chức chính thức hoạt động trên chuỗi.</p>
+                    <textarea id="apply-tenant-note" rows="2"
+                        class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm mb-3"
+                        placeholder="Ghi chú hồ sơ pháp lý / lý do đăng ký..."></textarea>
+                    <button onclick="submitTenantApplication()" id="btn-apply-tenant"
+                        class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-bold transition-colors"><i
+                            class="fa-solid fa-paper-plane"></i> Gửi Yêu Cầu Đăng Ký</button>
+                    <p class="text-xs text-slate-400 mt-3">Yêu cầu sẽ được Protocol Admin xét duyệt (thẩm định hồ sơ
+                        pháp lý) trước khi tổ chức chính thức hoạt động trên chuỗi.</p>
                 </div>
             </section>
 
             <!-- ================= VIEW: RECOVERY (OPERATOR / DELEGATE) ================= -->
             <section id="view-recovery" class="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto hidden fade-in">
-                 <div class="mb-8"><h2 class="text-2xl font-bold text-slate-800">Cổng Khôi Phục Khẩn Cấp</h2><p class="text-slate-500">Dành riêng cho Ví dự phòng truy cập</p></div>
-                 <div class="bg-white rounded-2xl shadow-xl border border-red-100 overflow-hidden text-center p-5 sm:p-8">
-                     <div id="recovery-empty-area" class="hidden text-slate-400"><i class="fa-solid fa-circle-check text-3xl text-emerald-300 mb-3"></i><p>Không có yêu cầu khôi phục nào đang chờ ví này xử lý.</p></div>
-                     <div id="recovery-action-area" class="hidden">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">Cổng Khôi Phục Khẩn Cấp</h2>
+                    <p class="text-slate-500">Dành riêng cho Ví dự phòng truy cập</p>
+                </div>
+                <div
+                    class="bg-white rounded-2xl shadow-xl border border-red-100 overflow-hidden text-center p-5 sm:p-8">
+                    <div id="recovery-empty-area" class="hidden text-slate-400"><i
+                            class="fa-solid fa-circle-check text-3xl text-emerald-300 mb-3"></i>
+                        <p>Không có yêu cầu khôi phục nào đang chờ ví này xử lý.</p>
+                    </div>
+                    <div id="recovery-action-area" class="hidden">
                         <p class="text-slate-500 mb-6" id="recovery-target-info"></p>
-                        <button onclick="executeRecovery()" id="btn-recover" class="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-xl font-bold transition-colors">Thực thi Cứu Hộ</button>
-                     </div>
-                     <div class="hidden" id="recovery-success-area"><h3 class="text-xl font-bold text-emerald-600">Khôi phục thành công!</h3></div>
-                 </div>
+                        <button onclick="executeRecovery()" id="btn-recover"
+                            class="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-xl font-bold transition-colors">Thực
+                            thi Cứu Hộ</button>
+                    </div>
+                    <div class="hidden" id="recovery-success-area">
+                        <h3 class="text-xl font-bold text-emerald-600">Khôi phục thành công!</h3>
+                    </div>
+                </div>
             </section>
 
             <!-- ================= VIEW: HR (TENANT) ================= -->
             <section id="view-hr" class="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto hidden fade-in">
-                <div class="mb-8"><h2 class="text-2xl font-bold text-slate-800">Quản Lý Nhân Sự</h2><p class="text-slate-500">Duyệt nhân viên mới, bật/tắt tư cách hoạt động. Whitelist đồng ký & vai trò theo từng loại chứng chỉ cấu hình tại <strong>Tham số Hợp Đồng</strong>.</p></div>
-                <div class="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800 mb-6 flex gap-3 items-start"><i class="fa-solid fa-circle-info mt-0.5"></i><p>Khác với Operator (tự gia nhập được), vai trò <strong>Admin</strong> và <strong>QL Vận Hành</strong> của một tổ chức không tự đăng ký được — chỉ được cấp lúc Protocol Admin khởi tạo tổ chức (<code class="text-xs bg-amber-100 px-1 rounded">createTenant</code>) hoặc qua <code class="text-xs bg-amber-100 px-1 rounded">grantRole</code> sau đó.</p></div>
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">Quản Lý Nhân Sự</h2>
+                    <p class="text-slate-500">Duyệt nhân viên mới, bật/tắt tư cách hoạt động. Whitelist đồng ký & vai
+                        trò theo từng loại chứng chỉ cấu hình tại <strong>Tham số Hợp Đồng</strong>.</p>
+                </div>
+                <div
+                    class="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800 mb-6 flex gap-3 items-start">
+                    <i class="fa-solid fa-circle-info mt-0.5"></i>
+                    <p>Khác với Operator (tự gia nhập được), vai trò <strong>Admin</strong> và <strong>QL Vận
+                            Hành</strong> của một tổ chức không tự đăng ký được — chỉ được cấp lúc Protocol Admin khởi
+                        tạo tổ chức (<code class="text-xs bg-amber-100 px-1 rounded">createTenant</code>) hoặc qua <code
+                            class="text-xs bg-amber-100 px-1 rounded">grantRole</code> sau đó.</p>
+                </div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="table-scroll"><table class="w-full text-left border-collapse">
-                        <thead class="bg-slate-50 border-b border-slate-200"><tr class="text-xs uppercase text-slate-500"><th class="p-4">Nhân viên</th><th class="p-4">Stake</th><th class="p-4">Tư cách HĐ</th></tr></thead>
-                        <tbody id="hr-table-body"></tbody>
-                    </table></div>
+                    <div class="table-scroll">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr class="text-xs uppercase text-slate-500">
+                                    <th class="p-4">Nhân viên</th>
+                                    <th class="p-4">Stake</th>
+                                    <th class="p-4">Tư cách HĐ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hr-table-body"></tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
             <!-- ================= VIEW: SLASH (TENANT) ================= -->
             <section id="view-slash" class="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto hidden fade-in">
-                <div class="mb-8"><h2 class="text-2xl font-bold text-slate-800">Xử Phạt Vi Phạm (Slashing)</h2><p class="text-slate-500">Tịch thu tài sản đảm bảo không cần toà án — hard-slash 100% hoặc soft-slash luỹ tiến theo mã lỗi</p></div>
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">Xử Phạt Vi Phạm</h2>
+                    <p class="text-slate-500">Tịch thu tài sản đảm bảo không cần toà án — hard-slash 100% hoặc
+                        soft-slash luỹ tiến theo mã lỗi</p>
+                </div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="table-scroll"><table class="w-full text-left border-collapse">
-                        <tbody id="slash-table-body"></tbody>
-                    </table></div>
+                    <div class="table-scroll">
+                        <table class="w-full text-left border-collapse">
+                            <tbody id="slash-table-body"></tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
             <!-- ================= VIEW: CONFIG (TENANT) ================= -->
             <section id="view-config" class="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto hidden fade-in">
-                <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-8"><h2 class="text-2xl font-bold text-slate-800">Tham Số Hợp Đồng (Smart Rules)</h2><button onclick="saveConfig()" id="btn-save-config" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors"><i class="fa-solid fa-floppy-disk"></i> Cập nhật Chuỗi</button></div>
+                <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">Tham Số Hợp Đồng</h2><button onclick="saveConfig()"
+                        id="btn-save-config"
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors"><i
+                            class="fa-solid fa-floppy-disk"></i> Cập nhật Chuỗi</button>
+                </div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6"><h3 class="font-bold text-slate-800 mb-5 flex items-center gap-2"><i class="fa-solid fa-building text-blue-500"></i> Tham số Vận hành Chung</h3><div class="space-y-6"><div><label class="flex justify-between text-sm font-medium mb-2"><span>Mức Cọc Tối Thiểu</span><span class="font-bold text-blue-600" id="cfg-minstake-label">0 ETH</span></label><input type="range" min="1" max="10" step="0.5" id="cfg-minstake-range" class="w-full h-2 bg-slate-200 rounded-lg appearance-none"></div><div><label class="flex justify-between text-sm font-medium mb-2"><span>Thời gian chờ rút cọc</span><span class="font-bold text-blue-600" id="cfg-cooldown-label">0 Giờ</span></label><input type="range" min="0" max="72" id="cfg-cooldown-range" class="w-full h-2 bg-slate-200 rounded-lg appearance-none"></div></div></div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="font-bold text-slate-800 mb-5 flex items-center gap-2"><i
+                                class="fa-solid fa-building text-blue-500"></i> Tham số Vận hành Chung</h3>
+                        <div class="space-y-6">
+                            <div><label class="flex justify-between text-sm font-medium mb-2"><span>Mức Cọc Tối
+                                        Thiểu</span><span class="font-bold text-blue-600" id="cfg-minstake-label">0
+                                        ETH</span></label><input type="range" min="1" max="10" step="0.5"
+                                    id="cfg-minstake-range" class="w-full h-2 bg-slate-200 rounded-lg appearance-none">
+                            </div>
+                            <div><label class="flex justify-between text-sm font-medium mb-2"><span>Thời gian chờ rút
+                                        cọc</span><span class="font-bold text-blue-600" id="cfg-cooldown-label">0
+                                        Giờ</span></label><input type="range" min="0" max="72" id="cfg-cooldown-range"
+                                    class="w-full h-2 bg-slate-200 rounded-lg appearance-none"></div>
+                        </div>
+                    </div>
                     <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                        <h3 class="font-bold text-slate-800 mb-5 flex items-center gap-2"><i class="fa-solid fa-users-gear text-emerald-500"></i> Chính Sách Đồng Ký Theo Loại Chứng Chỉ</h3>
+                        <h3 class="font-bold text-slate-800 mb-5 flex items-center gap-2"><i
+                                class="fa-solid fa-users-gear text-emerald-500"></i> Chính Sách Đồng Ký Theo Loại Chứng
+                            Chỉ</h3>
                         <div class="overflow-x-auto mb-4">
-                        <div class="table-scroll"><table class="w-full text-left border-collapse"><thead class="bg-slate-50 border-b border-slate-200"><tr class="text-xs uppercase text-slate-500"><th class="p-3">Loại Chứng Chỉ</th><th class="p-3 text-center">Bật Đồng Ký</th><th class="p-3">Số Chữ Ký Tối Thiểu</th><th class="p-3">Cọc Tối Thiểu (ETH)</th><th class="p-3">Vai Trò Bắt Buộc</th></tr></thead><tbody id="cosign-policy-table-body"></tbody></table></div>
+                            <div class="table-scroll">
+                                <table class="w-full text-left border-collapse">
+                                    <thead class="bg-slate-50 border-b border-slate-200">
+                                        <tr class="text-xs uppercase text-slate-500">
+                                            <th class="p-3">Loại Chứng Chỉ</th>
+                                            <th class="p-3 text-center">Bật Đồng Ký</th>
+                                            <th class="p-3">Số Chữ Ký Tối Thiểu</th>
+                                            <th class="p-3">Cọc Tối Thiểu (ETH)</th>
+                                            <th class="p-3">Vai Trò Bắt Buộc</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cosign-policy-table-body"></tbody>
+                                </table>
+                            </div>
                         </div>
                         <div class="flex flex-col sm:flex-row gap-3 sm:items-end border-t border-slate-100 pt-4">
-                            <div class="flex-1"><label class="block text-xs font-medium text-slate-500 mb-1">Mã loại chứng chỉ (docType)</label><input type="number" id="new-doctype-id" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
-                            <div class="flex-[3]"><label class="block text-xs font-medium text-slate-500 mb-1">Tên loại chứng chỉ</label><input type="text" id="new-doctype-label" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
-                            <button onclick="addCoSignPolicy()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium shrink-0">Tạo Loại Chứng Chỉ Mới</button>
+                            <div class="flex-1"><label class="block text-xs font-medium text-slate-500 mb-1">Mã loại
+                                    chứng chỉ</label><input type="number" id="new-doctype-id"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
+                            <div class="flex-[3]"><label class="block text-xs font-medium text-slate-500 mb-1">Tên loại
+                                    chứng chỉ</label><input type="text" id="new-doctype-label"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
+                            <button onclick="addCoSignPolicy()"
+                                class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium shrink-0">Tạo
+                                Loại Chứng Chỉ Mới</button>
                         </div>
                     </div>
                     <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-5">
-                            <h3 class="font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-user-check text-indigo-500"></i> Whitelist & Vai Trò Đồng Ký</h3>
-                            <select id="whitelist-doctype-select" onchange="changeWhitelistDocType(this.value)" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"></select>
+                            <h3 class="font-bold text-slate-800 flex items-center gap-2"><i
+                                    class="fa-solid fa-user-check text-indigo-500"></i> Whitelist & Vai Trò Đồng Ký</h3>
+                            <select id="whitelist-doctype-select" onchange="changeWhitelistDocType(this.value)"
+                                class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none"></select>
                         </div>
-                        <p class="text-sm text-slate-500 mb-4">Chỉ nhân viên được whitelist cho đúng loại chứng chỉ này mới được tính là chữ ký tin cậy (áp dụng khi đã bật Đồng Ký ở bảng trên).</p>
-                        <div class="table-scroll"><table class="w-full text-left border-collapse"><thead class="bg-slate-50 border-b border-slate-200"><tr class="text-xs uppercase text-slate-500"><th class="p-3">Nhân viên</th><th class="p-3 text-center">Whitelist</th><th class="p-3">Vai trò</th></tr></thead><tbody id="whitelist-table-body"></tbody></table></div>
+                        <p class="text-sm text-slate-500 mb-4">Chỉ nhân viên được whitelist cho đúng loại chứng chỉ này
+                            mới được tính là chữ ký tin cậy (áp dụng khi đã bật Đồng Ký ở bảng trên).</p>
+                        <div class="table-scroll">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-50 border-b border-slate-200">
+                                    <tr class="text-xs uppercase text-slate-500">
+                                        <th class="p-3">Nhân viên</th>
+                                        <th class="p-3 text-center">Whitelist</th>
+                                        <th class="p-3">Vai trò</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="whitelist-table-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                     <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                        <h3 class="font-bold text-slate-800 mb-5 flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-red-500"></i> Bảng Mức Phạt Theo Vi Phạm (Soft-Slash)</h3>
-                        <div class="table-scroll"><table class="w-full text-left border-collapse mb-4"><thead class="bg-slate-50 border-b border-slate-200"><tr class="text-xs uppercase text-slate-500"><th class="p-3">Mã lỗi</th><th class="p-3">Mô tả</th><th class="p-3 text-right">% Cọc bị trừ</th></tr></thead><tbody id="penalty-table-body"></tbody></table></div>
+                        <h3 class="font-bold text-slate-800 mb-5 flex items-center gap-2"><i
+                                class="fa-solid fa-scale-balanced text-red-500"></i> Bảng Mức Phạt Theo Vi Phạm</h3>
+                        <div class="table-scroll">
+                            <table class="w-full text-left border-collapse mb-4">
+                                <thead class="bg-slate-50 border-b border-slate-200">
+                                    <tr class="text-xs uppercase text-slate-500">
+                                        <th class="p-3">Mã lỗi</th>
+                                        <th class="p-3">Mô tả</th>
+                                        <th class="p-3 text-right">% Cọc bị trừ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="penalty-table-body"></tbody>
+                            </table>
+                        </div>
                         <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
-                            <div class="flex-1"><label class="block text-xs font-medium text-slate-500 mb-1">Mã lỗi</label><input type="number" id="penalty-code-input" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
-                            <div class="flex-[3]"><label class="block text-xs font-medium text-slate-500 mb-1">Mô tả</label><input type="text" id="penalty-label-input" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
-                            <div class="flex-1"><label class="block text-xs font-medium text-slate-500 mb-1">% Cọc</label><input type="number" id="penalty-bps-input" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
-                            <button onclick="addViolationPenalty()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium shrink-0">Thêm mã lỗi</button>
+                            <div class="flex-1"><label class="block text-xs font-medium text-slate-500 mb-1">Mã
+                                    lỗi</label><input type="number" id="penalty-code-input"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
+                            <div class="flex-[3]"><label class="block text-xs font-medium text-slate-500 mb-1">Mô
+                                    tả</label><input type="text" id="penalty-label-input"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
+                            <div class="flex-1"><label class="block text-xs font-medium text-slate-500 mb-1">%
+                                    Cọc</label><input type="number" id="penalty-bps-input"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
+                            <button onclick="addViolationPenalty()"
+                                class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium shrink-0">Thêm
+                                mã lỗi</button>
                         </div>
                     </div>
                 </div>
@@ -599,95 +1194,158 @@
 
             <!-- ================= VIEW: REVOKE (TENANT) ================= -->
             <section id="view-revoke" class="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto hidden fade-in">
-                <div class="mb-8"><h2 class="text-2xl font-bold text-slate-800">Thu Hồi Chứng Chỉ (Revoke)</h2><p class="text-slate-500">Quyền lực tối cao của Giám đốc Công ty (Tenant Admin)</p></div>
-                <div class="mb-4"><input type="text" id="revoke-reason-input" placeholder="Nhập lý do thu hồi (áp dụng cho lần thu hồi tiếp theo)..." class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm"></div>
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">Thu Hồi Chứng Chỉ</h2>
+                    <p class="text-slate-500">Quyền lực tối cao của Giám đốc Công ty</p>
+                </div>
+                <div class="mb-4"><input type="text" id="revoke-reason-input"
+                        placeholder="Nhập lý do thu hồi (áp dụng cho lần thu hồi tiếp theo)..."
+                        class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm"></div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="table-scroll"><table class="w-full text-left border-collapse">
-                        <tbody id="revoke-table-body"></tbody>
-                    </table></div>
+                    <div class="table-scroll">
+                        <table class="w-full text-left border-collapse">
+                            <tbody id="revoke-table-body"></tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
             <!-- ================= VIEW: TREASURY (TENANT) ================= -->
             <section id="view-treasury" class="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto hidden fade-in">
-                <div class="mb-8"><h2 class="text-2xl font-bold text-slate-800">Đổi Tài Khoản Nhận Tiền Quỹ</h2><p class="text-slate-500">Chỉ Tenant Admin thực hiện được; không được trùng Admin/QL Vận hành</p></div>
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">Đổi Tài Khoản Nhận Tiền Quỹ</h2>
+                    <p class="text-slate-500">Chỉ Tenant Admin thực hiện được; không được trùng Admin/QL Vận hành</p>
+                </div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-8">
                     <p class="text-sm text-slate-500 mb-1">Tài khoản quỹ hiện tại:</p>
                     <p class="font-mono font-bold text-slate-800 mb-6" id="treasury-current"></p>
                     <div class="flex flex-col sm:flex-row gap-3">
-                        <input type="text" id="treasury-input" placeholder="Nhập địa chỉ ví quỹ mới 0x..." class="flex-1 border border-slate-300 rounded-xl px-4 py-3 font-mono outline-none">
-                        <button onclick="changeTreasury()" id="btn-save-treasury" class="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-xl font-bold transition-all shrink-0"><i class="fa-solid fa-floppy-disk"></i> Cập Nhật Treasury</button>
+                        <input type="text" id="treasury-input" placeholder="Nhập địa chỉ ví quỹ mới 0x..."
+                            class="flex-1 border border-slate-300 rounded-xl px-4 py-3 font-mono outline-none">
+                        <button onclick="changeTreasury()" id="btn-save-treasury"
+                            class="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-xl font-bold transition-all shrink-0"><i
+                                class="fa-solid fa-floppy-disk"></i> Cập Nhật Treasury</button>
                     </div>
                 </div>
             </section>
 
             <!-- ================= VIEW: EMERGENCY RECOVERY BY ADMIN (TENANT) ================= -->
             <section id="view-emergency-recovery" class="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto hidden fade-in">
-                <div class="mb-8"><h2 class="text-2xl font-bold text-slate-800">Khôi Phục Hộ Nhân Viên (Lưới An Toàn Cuối)</h2><p class="text-slate-500">Dành cho nhân viên mất ví nhưng chưa từng cấu hình ví dự phòng</p></div>
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" id="emergency-recovery-list"></div>
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">Khôi Phục Hộ Nhân Viên (Lưới An Toàn Cuối)</h2>
+                    <p class="text-slate-500">Dành cho nhân viên mất ví nhưng chưa từng cấu hình ví dự phòng</p>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+                    id="emergency-recovery-list"></div>
             </section>
 
             <!-- ================= VIEW: PLATFORM (ADMIN) ================= -->
             <section id="view-platform" class="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto hidden fade-in">
-                <div class="mb-8"><h2 class="text-2xl font-bold text-slate-800">Quản Trị Hệ Sinh Thái (Kill-Switch)</h2><p class="text-slate-500">Quyền lực tối cao của Nền tảng TrustChain</p></div>
-                <div class="bg-purple-50 border border-purple-100 rounded-xl p-4 text-sm text-purple-800 mb-6 flex gap-3 items-start"><i class="fa-solid fa-circle-info mt-0.5"></i><p>Vai trò <strong>Protocol Admin</strong> được gán một lần duy nhất trong constructor lúc triển khai smart contract — không qua bất kỳ luồng đăng ký nào, và bản thân Protocol Admin bị cấm giữ thêm vai trò tenant nào (tránh vừa đá bóng vừa thổi còi).</p></div>
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">Quản Trị Hệ Sinh Thái</h2>
+                    <p class="text-slate-500">Quyền lực tối cao của Nền tảng TrustChain</p>
+                </div>
+                <div
+                    class="bg-purple-50 border border-purple-100 rounded-xl p-4 text-sm text-purple-800 mb-6 flex gap-3 items-start">
+                    <i class="fa-solid fa-circle-info mt-0.5"></i>
+                    <p>Vai trò <strong>Protocol Admin</strong> được gán một lần duy nhất trong constructor lúc triển
+                        khai smart contract — không qua bất kỳ luồng đăng ký nào, và bản thân Protocol Admin bị cấm giữ
+                        thêm vai trò tenant nào (tránh vừa đá bóng vừa thổi còi).</p>
+                </div>
 
                 <div class="bg-white rounded-2xl shadow-sm border border-amber-200 overflow-hidden mb-6">
-                    <h3 class="font-bold text-slate-800 p-6 pb-3 flex items-center gap-2"><i class="fa-solid fa-inbox text-amber-500"></i> Yêu Cầu Đăng Ký Đang Chờ Duyệt</h3>
+                    <h3 class="font-bold text-slate-800 p-6 pb-3 flex items-center gap-2"><i
+                            class="fa-solid fa-inbox text-amber-500"></i> Yêu Cầu Đăng Ký Đang Chờ Duyệt</h3>
                     <div id="tenant-applications-list"></div>
                 </div>
 
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
-                    <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-plus text-purple-500"></i> Tạo Tổ Chức (Tenant) Mới</h3>
+                    <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i
+                            class="fa-solid fa-plus text-purple-500"></i> Tạo Tổ Chức Mới</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                        <input type="text" id="new-tenant-id" placeholder="Mã tổ chức (vd: hcmut)" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
-                        <input type="text" id="new-tenant-name" placeholder="Tên doanh nghiệp" class="border border-slate-300 rounded-lg px-3 py-2 text-sm sm:col-span-2 lg:col-span-2">
-                        <input type="text" id="new-tenant-admin" placeholder="Ví Tenant Admin 0x..." class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
-                        <input type="text" id="new-tenant-opmanager" placeholder="Ví Operator Manager 0x..." class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
-                        <input type="text" id="new-tenant-treasury" placeholder="Ví Treasury 0x..." class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
-                        <input type="number" id="new-tenant-minstake" placeholder="Mức cọc tối thiểu (ETH)" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
-                        <input type="number" id="new-tenant-cooldown" placeholder="Thời gian chờ rút cọc (giờ)" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                        <input type="text" id="new-tenant-id" placeholder="Mã tổ chức (vd: hcmut)"
+                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                        <input type="text" id="new-tenant-name" placeholder="Tên doanh nghiệp"
+                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm sm:col-span-2 lg:col-span-2">
+                        <input type="text" id="new-tenant-admin" placeholder="Ví Tenant Admin 0x..."
+                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
+                        <input type="text" id="new-tenant-opmanager" placeholder="Ví Operator Manager 0x..."
+                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
+                        <input type="text" id="new-tenant-treasury" placeholder="Ví Treasury 0x..."
+                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono">
+                        <input type="number" id="new-tenant-minstake" placeholder="Mức cọc tối thiểu (ETH)"
+                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                        <input type="number" id="new-tenant-cooldown" placeholder="Thời gian chờ rút cọc (giờ)"
+                            class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
                     </div>
-                    <p class="text-xs text-slate-400 mb-4">Admin / Operator Manager / Treasury bắt buộc phải là 3 địa chỉ khác nhau — hệ thống tự động từ chối nếu trùng.</p>
-                    <button onclick="createTenant()" id="btn-create-tenant" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-medium"><i class="fa-solid fa-plus"></i> Khởi Tạo Tổ Chức</button>
+                    <p class="text-xs text-slate-400 mb-4">Admin / Operator Manager / Treasury bắt buộc phải là 3 địa
+                        chỉ khác nhau — hệ thống tự động từ chối nếu trùng.</p>
+                    <button onclick="createTenant()" id="btn-create-tenant"
+                        class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-medium"><i
+                            class="fa-solid fa-plus"></i> Khởi Tạo Tổ Chức</button>
                 </div>
 
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="table-scroll"><table class="w-full text-left border-collapse">
-                        <thead class="bg-slate-50 border-b border-slate-200"><tr class="text-xs uppercase text-slate-500"><th class="p-4">Tổ chức (Tenant)</th><th class="p-4">Trạng thái</th><th class="p-4 text-right">Điều khiển</th></tr></thead>
-                        <tbody id="tenant-table-body"></tbody>
-                    </table></div>
+                    <div class="table-scroll">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr class="text-xs uppercase text-slate-500">
+                                    <th class="p-4">Tổ chức</th>
+                                    <th class="p-4">Trạng thái</th>
+                                    <th class="p-4 text-right">Điều khiển</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tenant-table-body"></tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
             <!-- Toast Notification -->
-            <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 text-white px-6 py-4 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-3 z-50">
-                <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white" id="toast-icon"><i class="fa-solid fa-check"></i></div>
-                <div><p class="font-bold text-sm" id="toast-title">Thành công</p><p class="text-xs text-slate-300" id="toast-message">Giao dịch đã lưu.</p></div>
+            <div id="toast"
+                class="fixed bottom-6 right-6 bg-slate-800 text-white px-6 py-4 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-3 z-50">
+                <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white"
+                    id="toast-icon"><i class="fa-solid fa-check"></i></div>
+                <div>
+                    <p class="font-bold text-sm" id="toast-title">Thành công</p>
+                    <p class="text-xs text-slate-300" id="toast-message">Giao dịch đã lưu.</p>
+                </div>
             </div>
 
             <!-- IPFS Content Viewer Modal -->
-            <div id="ipfs-viewer-modal" class="hidden fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-3 sm:p-6">
-                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+            <div id="ipfs-viewer-modal"
+                class="hidden fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-3 sm:p-6">
+                <div
+                    class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
                     <div class="p-6 border-b border-slate-100 flex items-start justify-between shrink-0">
                         <div>
                             <h3 class="font-bold text-lg text-slate-800" id="ipfs-viewer-title"></h3>
                             <p class="text-xs text-slate-400 font-mono mt-1">CID: <span id="ipfs-viewer-cid"></span></p>
                         </div>
-                        <button onclick="closeIpfsViewer()" class="text-slate-400 hover:text-slate-700 text-xl leading-none"><i class="fa-solid fa-xmark"></i></button>
+                        <button onclick="closeIpfsViewer()"
+                            class="text-slate-400 hover:text-slate-700 text-xl leading-none"><i
+                                class="fa-solid fa-xmark"></i></button>
                     </div>
                     <div class="p-4 sm:p-8 overflow-y-auto flex-1 bg-slate-50">
                         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-8 min-h-[16rem]">
-                            <h4 class="font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100" id="ipfs-viewer-page-heading"></h4>
-                            <p class="text-sm text-slate-600 whitespace-pre-line leading-relaxed" id="ipfs-viewer-page-body"></p>
+                            <h4 class="font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100"
+                                id="ipfs-viewer-page-heading"></h4>
+                            <p class="text-sm text-slate-600 whitespace-pre-line leading-relaxed"
+                                id="ipfs-viewer-page-body"></p>
                         </div>
                     </div>
                     <div class="p-4 border-t border-slate-100 flex items-center justify-between shrink-0">
-                        <a id="ipfs-viewer-gateway-link" href="#" target="_blank" rel="noopener" class="text-xs text-indigo-600 hover:underline flex items-center gap-1"><i class="fa-solid fa-arrow-up-right-from-square"></i> Mở trên IPFS Gateway</a>
+                        <a id="ipfs-viewer-gateway-link" href="#" target="_blank" rel="noopener"
+                            class="text-xs text-indigo-600 hover:underline flex items-center gap-1"><i
+                                class="fa-solid fa-arrow-up-right-from-square"></i> Mở trên IPFS Gateway</a>
                         <div class="flex items-center gap-3">
-                            <button onclick="ipfsPrevPage()" id="ipfs-viewer-prev" class="w-9 h-9 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button onclick="ipfsPrevPage()" id="ipfs-viewer-prev"
+                                class="w-9 h-9 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"><i
+                                    class="fa-solid fa-chevron-left"></i></button>
                             <span class="text-sm font-medium text-slate-600" id="ipfs-viewer-page-indicator"></span>
-                            <button onclick="ipfsNextPage()" id="ipfs-viewer-next" class="w-9 h-9 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"><i class="fa-solid fa-chevron-right"></i></button>
+                            <button onclick="ipfsNextPage()" id="ipfs-viewer-next"
+                                class="w-9 h-9 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"><i
+                                    class="fa-solid fa-chevron-right"></i></button>
                         </div>
                     </div>
                 </div>
@@ -720,7 +1378,29 @@
                 if (window.innerWidth >= 1024) closeSidebar();
             });
         });
+        function switchAccountTab(tab) {
+            ['overview', 'activity', 'security'].forEach(t => {
+                document.getElementById('account-tab-' + t).classList.toggle('hidden', t !== tab);
+                const btn = document.getElementById('account-tab-btn-' + t);
+                btn.className = t === tab
+                    ? 'px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-white whitespace-nowrap'
+                    : 'px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap';
+            });
+        }
+
+        function copyAccountAddress() {
+            const addr = document.getElementById('account-address').textContent;
+            navigator.clipboard.writeText(addr);
+            showToast('Đã sao chép', 'Địa chỉ ví đã được sao chép vào clipboard.');
+        }
+
+        // Gợi ý: khi render account-name, đồng thời set avatar là chữ cái đầu
+        function renderAccountAvatar(name) {
+            const initials = name ? name.trim().split(' ').slice(-2).map(w => w[0]).join('').toUpperCase() : '?';
+            document.getElementById('account-avatar').textContent = initials;
+        }
     </script>
     <script src="app.js"></script>
 </body>
+
 </html>
